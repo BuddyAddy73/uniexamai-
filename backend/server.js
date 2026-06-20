@@ -34,6 +34,15 @@ app.use(cors({
 app.use("/api/payment/webhook", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "1mb" }));
 
+// ── Root — friendly response so the bare domain doesn't look broken ──
+app.get("/", (req, res) => {
+  res.json({
+    service: "UniExamAI API",
+    status: "running",
+    note: "This is a backend API, not a webpage. Try /health for a status check."
+  });
+});
+
 // ── Health check ──────────────────────────────────────
 app.get("/health", (req, res) => {
   res.json({ status: "ok", service: "UniExamAI API", timestamp: new Date().toISOString() });

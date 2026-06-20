@@ -179,34 +179,32 @@ async function processQuery({ query, university, branch, semester, mode = "expla
       ? buildPracticePrompt(context)
       : buildSystemPrompt(context, domainHint);
 
-  // Step 4: Call AI API
-  // ⚠️ Currently hardcoded to Claude (api.anthropic.com). To switch to
-  // Gemini (e.g. reusing your CodeQuest API key) or OpenRouter, only this
-  // fetch call needs to change — request/response shape differs per
-  // provider, but everything else in this file (search, prompts, caching)
-  // stays identical.
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [{ role: "user", content: query }]
-    })
-  });
+  // Step 4: Call Gemini API (free tier — same Google account as CodeQuest)
+  // Switching back to Claude later only means changing this one block.
+  const GEMINI_MODEL = "gemini-2.5-flash"; // good free-tier balance of quality + rate limits
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": process.env.GEMINI_API_KEY
+      },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: "user", parts: [{ text: query }] }],
+        generationConfig: { maxOutputTokens: 1024 }
+      })
+    }
+  );
 
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(`Claude API error: ${data.error?.message || "Unknown error"}`);
+    throw new Error(`Gemini API error: ${data.error?.message || "Unknown error"}`);
   }
 
-  const answer = data.content?.[0]?.text || "No response generated.";
+  const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
 
   // Step 5b: Deterministic safety net — if the model didn't include a
   // deep-dive link despite the system prompt instruction, add one ourselves
