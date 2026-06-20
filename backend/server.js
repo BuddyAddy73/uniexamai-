@@ -69,6 +69,11 @@ app.listen(PORT, () => {
   console.log(`🚀 UniExamAI API running on port ${PORT}`);
   // Pre-load knowledge base into memory at startup
   loadKnowledgeBase();
+
+  // Diagnostic only — confirms the key is actually present without ever
+  // logging the real value. Remove this once the Gemini issue is confirmed fixed.
+  const key = process.env.GEMINI_API_KEY;
+  console.log(`🔑 GEMINI_API_KEY present: ${!!key} | length: ${key?.length || 0}`);
 });
 
 module.exports = app;
