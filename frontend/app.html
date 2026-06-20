@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNIEX AI — App</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:      #05091A;
+  --bg-s:    #0B1121;
+  --bg-c:    #0F1728;
+  --bg-h:    #141F35;
+  --indigo:  #6366F1;
+  --ind-d:   rgba(99,102,241,.12);
+  --ind-b:   rgba(99,102,241,.22);
+  --cyan:    #22D3EE;
+  --cyn-d:   rgba(34,211,238,.1);
+  --amber:   #F59E0B;
+  --text:    #EEF2FF;
+  --text-2:  #94A3B8;
+  --text-3:  #3D4E6B;
+  --border:  rgba(255,255,255,.055);
+  --border-i:rgba(99,102,241,.18);
+  --r:       10px;
+  --r-lg:    14px;
+  --ff-d:    'Space Grotesk',sans-serif;
+  --ff-b:    'Inter',sans-serif;
+  --ff-m:    'JetBrains Mono',monospace;
+  --sidebar: 240px;
+  --topbar:  52px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--ff-b);
+  -webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;
+}
+
+/* ── TOP BAR ──────────────────────────────────────── */
+.topbar{
+  height:var(--topbar);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  background:var(--bg-s);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  z-index:100;
+}
+.logo{
+  font-family:var(--ff-d);font-size:.95rem;font-weight:700;
+  letter-spacing:.08em;
+}
+.logo em{font-style:normal;color:var(--indigo);}
+
+.top-center{display:flex;gap:4px;}
+.top-tab{
+  padding:6px 16px;border-radius:var(--r);
+  font-size:.8rem;font-weight:500;cursor:pointer;
+  color:var(--text-2);border:1px solid transparent;
+  transition:all .2s;
+}
+.top-tab:hover{color:var(--text);background:var(--bg-h);}
+.top-tab.on{
+  color:#A5B4FC;background:var(--ind-d);
+  border-color:var(--ind-b);
+}
+
+.top-right{display:flex;align-items:center;gap:10px;}
+.plan-badge{
+  padding:4px 10px;border-radius:100px;
+  background:var(--ind-d);border:1px solid var(--ind-b);
+  font-family:var(--ff-m);font-size:.62rem;color:#A5B4FC;
+  text-transform:uppercase;letter-spacing:.06em;
+}
+.avatar{
+  width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(135deg,var(--indigo),var(--cyan));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--ff-d);font-size:.78rem;font-weight:700;
+  cursor:pointer;
+}
+
+/* ── MAIN LAYOUT ─────────────────────────────────── */
+.main{
+  flex:1;display:flex;overflow:hidden;
+}
+
+/* ── LEFT SIDEBAR ────────────────────────────────── */
+.sidebar{
+  width:var(--sidebar);
+  background:var(--bg-s);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:16px 12px;
+  flex-shrink:0;
+  overflow-y:auto;
+}
+.sb-section{margin-bottom:20px;}
+.sb-label{
+  font-family:var(--ff-m);font-size:.6rem;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.09em;
+  padding:0 8px;margin-bottom:8px;
+}
+.sb-select{
+  width:100%;padding:8px 10px;
+  background:var(--bg-c);border:1px solid var(--border);
+  border-radius:var(--r);color:var(--text);
+  font-size:.8rem;font-family:var(--ff-b);
+  cursor:pointer;outline:none;
+  transition:border-color .2s;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7FA3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+}
+.sb-select:focus{border-color:var(--ind-b);}
+
+/* subject chips */
+.subject-chips{display:flex;flex-direction:column;gap:4px;}
+.chip{
+  padding:7px 10px;border-radius:var(--r);
+  font-size:.78rem;color:var(--text-2);
+  cursor:pointer;border:1px solid transparent;
+  transition:all .2s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.chip:hover{background:var(--bg-h);color:var(--text);}
+.chip.active{
+  background:var(--ind-d);border-color:var(--ind-b);
+  color:#A5B4FC;
+}
+.chip-empty{
+  font-size:.74rem;color:var(--text-3);line-height:1.6;
+  padding:8px 4px;
+}
+
+/* usage meter */
+.usage-bar{
+  margin-top:auto;
+  padding:12px;
+  background:var(--bg-c);border:1px solid var(--border);
+  border-radius:var(--r-lg);
+}
+.usage-head{
+  display:flex;justify-content:space-between;
+  font-size:.72rem;color:var(--text-2);margin-bottom:8px;
+}
+.usage-track{
+  height:4px;background:var(--bg-h);border-radius:100px;overflow:hidden;
+}
+.usage-fill{
+  height:100%;border-radius:100px;
+  background:linear-gradient(90deg,var(--indigo),var(--cyan));
+  width:40%;transition:width .4s ease;
+}
+.usage-note{
+  font-size:.68rem;color:var(--text-3);margin-top:7px;
+  line-height:1.5;
+}
+.usage-note a{color:var(--indigo);text-decoration:none;}
+
+/* ── CONTENT AREA ────────────────────────────────── */
+.content{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+}
+
+/* ── ASK AI VIEW ─────────────────────────────────── */
+#viewAsk{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.chat-feed{
+  flex:1;overflow-y:auto;
+  padding:28px 10% 12px;
+  display:flex;flex-direction:column;gap:20px;
+  scroll-behavior:smooth;
+}
+.chat-feed::-webkit-scrollbar{width:4px;}
+.chat-feed::-webkit-scrollbar-track{background:transparent;}
+.chat-feed::-webkit-scrollbar-thumb{background:var(--bg-h);border-radius:4px;}
+
+/* empty state */
+.empty-state{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;gap:12px;
+  padding:40px;
+}
+.empty-icon{font-size:2.5rem;margin-bottom:4px;}
+.empty-title{font-family:var(--ff-d);font-size:1.2rem;font-weight:600;letter-spacing:-.02em;}
+.empty-sub{font-size:.875rem;color:var(--text-2);max-width:360px;line-height:1.7;}
+.suggested{
+  display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px;
+}
+.sug{
+  padding:8px 14px;border-radius:var(--r);
+  background:var(--bg-c);border:1px solid var(--border);
+  font-size:.8rem;color:var(--text-2);
+  cursor:pointer;transition:all .2s;
+}
+.sug:hover{border-color:var(--ind-b);color:var(--text);background:var(--ind-d);}
+
+/* message bubbles */
+.msg-row{display:flex;gap:12px;align-items:flex-start;}
+.msg-row.user{justify-content:flex-end;}
+.msg-row.ai{justify-content:flex-start;}
+
+.ai-dot{
+  width:28px;height:28px;flex-shrink:0;
+  border-radius:50%;margin-top:2px;
+  background:linear-gradient(135deg,var(--indigo),var(--cyan));
+  display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;font-weight:700;font-family:var(--ff-d);
+}
+
+.bubble{
+  max-width:72%;padding:13px 16px;
+  border-radius:var(--r-lg);
+  font-size:.875rem;line-height:1.7;
+}
+.bubble.user{
+  background:var(--ind-d);border:1px solid var(--ind-b);
+  border-radius:var(--r-lg) var(--r-lg) 4px var(--r-lg);
+}
+.bubble.ai{
+  background:var(--bg-c);border:1px solid var(--border);
+  border-radius:4px var(--r-lg) var(--r-lg) var(--r-lg);
+  color:var(--text-2);
+}
+.bubble.ai p{margin-bottom:8px;}
+.bubble.ai p:last-child{margin-bottom:0;}
+
+/* source citation */
+.src-cite{
+  display:inline-flex;align-items:center;gap:5px;
+  margin-top:10px;padding:4px 10px;
+  border-radius:6px;
+  background:rgba(34,211,238,.07);
+  border:1px solid rgba(34,211,238,.15);
+  font-family:var(--ff-m);font-size:.62rem;color:var(--cyan);
+}
+
+/* wolfram link */
+.wolfram-link{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:8px;margin-left:4px;
+  padding:4px 10px;border-radius:6px;
+  background:rgba(245,158,11,.07);
+  border:1px solid rgba(245,158,11,.15);
+  font-size:.7rem;color:var(--amber);
+  text-decoration:none;cursor:pointer;
+}
+
+/* thinking state */
+.thinking{
+  display:flex;align-items:center;gap:10px;
+  font-size:.82rem;color:var(--text-3);
+  padding:12px 16px;
+}
+.dots{display:flex;gap:4px;}
+.dots span{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--indigo);
+  animation:bounce .9s ease infinite;
+}
+.dots span:nth-child(2){animation-delay:.18s;}
+.dots span:nth-child(3){animation-delay:.36s;}
+.thinking-label{font-family:var(--ff-m);font-size:.7rem;}
+
+/* typing states cycle */
+.think-states{display:flex;gap:8px;flex-wrap:wrap;}
+.think-tag{
+  padding:3px 9px;border-radius:100px;
+  background:var(--ind-d);border:1px solid var(--ind-b);
+  font-family:var(--ff-m);font-size:.62rem;color:#A5B4FC;
+}
+
+/* ── INPUT BAR ───────────────────────────────────── */
+.input-area{
+  padding:16px 10%;
+  border-top:1px solid var(--border);
+  background:var(--bg-s);
+  flex-shrink:0;
+}
+.input-row{
+  display:flex;gap:10px;align-items:flex-end;
+}
+.input-box{
+  flex:1;
+  background:var(--bg-c);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  padding:12px 16px;
+  font-family:var(--ff-b);font-size:.9rem;
+  color:var(--text);resize:none;
+  outline:none;
+  transition:border-color .2s;
+  min-height:48px;max-height:120px;
+  line-height:1.5;
+}
+.input-box::placeholder{color:var(--text-3);}
+.input-box:focus{border-color:var(--ind-b);}
+.send{
+  width:44px;height:44px;border-radius:var(--r);
+  background:var(--indigo);border:none;
+  color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;
+  transition:all .2s;flex-shrink:0;
+}
+.send:hover{background:#4F46E5;box-shadow:0 4px 16px rgba(99,102,241,.4);}
+.input-hint{
+  font-size:.7rem;color:var(--text-3);text-align:center;
+  margin-top:8px;font-family:var(--ff-m);
+}
+
+/* ── PYQ VIEW ────────────────────────────────────── */
+#viewPYQ{
+  flex:1;overflow-y:auto;padding:28px 10%;
+  display:none;flex-direction:column;gap:20px;
+}
+.pyq-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:4px;
+}
+.pyq-title{
+  font-family:var(--ff-d);font-size:1rem;font-weight:600;
+}
+.pyq-filter{
+  display:flex;gap:8px;
+}
+.flt{
+  padding:6px 12px;border-radius:var(--r);
+  background:var(--bg-c);border:1px solid var(--border);
+  font-size:.75rem;color:var(--text-2);cursor:pointer;
+  transition:all .2s;
+}
+.flt.on{background:var(--ind-d);border-color:var(--ind-b);color:#A5B4FC;}
+.flt:hover{border-color:var(--ind-b);}
+
+.paper-card{
+  background:var(--bg-c);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:20px 22px;
+  cursor:pointer;transition:all .25s;
+}
+.paper-card:hover{border-color:var(--ind-b);transform:translateY(-2px);}
+.paper-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.paper-year{
+  font-family:var(--ff-m);font-size:.7rem;color:var(--indigo);
+  padding:3px 8px;border-radius:4px;
+  background:var(--ind-d);border:1px solid var(--ind-b);
+}
+.paper-sub{
+  font-family:var(--ff-d);font-size:.95rem;font-weight:600;margin-bottom:4px;
+}
+.paper-meta{font-size:.78rem;color:var(--text-3);}
+.paper-qs{
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;
+}
+.paper-qtag{
+  padding:4px 10px;border-radius:6px;
+  background:var(--bg-s);border:1px solid var(--border);
+  font-size:.72rem;color:var(--text-2);
+}
+.paper-qtag b{color:var(--text);}
+
+/* ── PRACTICE VIEW ───────────────────────────────── */
+#viewPractice{
+  flex:1;overflow-y:auto;padding:28px 10%;
+  display:none;flex-direction:column;gap:20px;
+}
+.prac-config{
+  background:var(--bg-c);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:20px 22px;
+}
+.prac-config-title{
+  font-family:var(--ff-d);font-size:.95rem;font-weight:600;margin-bottom:16px;
+}
+.prac-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.prac-sel{
+  padding:8px 12px;
+  background:var(--bg-s);border:1px solid var(--border);
+  border-radius:var(--r);color:var(--text-2);
+  font-size:.8rem;font-family:var(--ff-b);
+  cursor:pointer;outline:none;
+  transition:border-color .2s;
+}
+.prac-sel:focus{border-color:var(--ind-b);}
+.gen-btn{
+  padding:9px 20px;border-radius:var(--r);
+  background:var(--indigo);border:none;
+  color:#fff;font-size:.85rem;font-weight:500;
+  font-family:var(--ff-b);cursor:pointer;
+  transition:all .2s;margin-left:auto;
+}
+.gen-btn:hover{background:#4F46E5;box-shadow:0 4px 16px rgba(99,102,241,.4);}
+
+.q-card{
+  background:var(--bg-c);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:20px 22px;
+  transition:border-color .25s;
+}
+.q-card:hover{border-color:var(--ind-b);}
+.q-top{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.q-num{
+  width:26px;height:26px;border-radius:50%;
+  background:var(--ind-d);border:1px solid var(--ind-b);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--ff-d);font-size:.72rem;font-weight:700;color:var(--indigo);
+  flex-shrink:0;
+}
+.q-marks{
+  margin-left:auto;padding:3px 8px;border-radius:4px;
+  background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.15);
+  font-family:var(--ff-m);font-size:.62rem;color:var(--cyan);
+}
+.q-text{
+  font-size:.875rem;line-height:1.7;color:var(--text);
+  padding-left:36px;
+}
+.q-unit{
+  font-family:var(--ff-m);font-size:.65rem;color:var(--text-3);
+  padding-left:36px;margin-top:6px;
+}
+
+/* ── ANIMATIONS ──────────────────────────────────── */
+@keyframes bounce{
+  0%,100%{transform:translateY(0);opacity:.4;}
+  50%{transform:translateY(-5px);opacity:1;}
+}
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(8px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.fade-in{animation:fadeIn .35s ease forwards;}
+
+/* scrollbars */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg-h);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- ── TOP BAR ──────────────────────────────────── -->
+<div class="topbar">
+  <div class="logo">UNIEX <em>AI</em></div>
+  <div class="top-center">
+    <div class="top-tab on" data-view="Ask">💬 Ask AI</div>
+    <div class="top-tab" data-view="PYQ">📄 PYQs</div>
+    <div class="top-tab" data-view="Practice">⚡ Practice</div>
+  </div>
+  <div class="top-right">
+    <span class="plan-badge" id="planBadge">Free · 10/10 left</span>
+    <div class="avatar">A</div>
+  </div>
+</div>
+
+<!-- ── MAIN ──────────────────────────────────────── -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">University Affiliation</div>
+      <select class="sb-select" id="selAffil">
+        <option value="RGPV">RGPV — Bhopal</option>
+        <option value="DAVV">DAVV — Indore</option>
+      </select>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Your College</div>
+      <select class="sb-select" id="selCollege"></select>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Branch</div>
+      <select class="sb-select" id="selBranch"></select>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Semester</div>
+      <select class="sb-select" id="selSem">
+        <option value="1">1st Semester</option>
+        <option value="2">2nd Semester</option>
+        <option value="3" selected>3rd Semester</option>
+        <option value="4">4th Semester</option>
+        <option value="5">5th Semester</option>
+        <option value="6">6th Semester</option>
+        <option value="7">7th Semester</option>
+        <option value="8">8th Semester</option>
+      </select>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Subjects</div>
+      <div class="subject-chips" id="chipList"></div>
+    </div>
+
+    <!-- usage meter -->
+    <div class="usage-bar">
+      <div class="usage-head"><span>Daily queries</span><span id="usageText" style="color:var(--indigo)">0 / 10</span></div>
+      <div class="usage-track"><div class="usage-fill" id="usageFill" style="width:0%"></div></div>
+      <div class="usage-note" id="usageNote">10 queries left today. <a href="#">Upgrade →</a> for 100/day.</div>
+    </div>
+  </aside>
+
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ASK AI VIEW -->
+    <div id="viewAsk">
+      <div class="chat-feed" id="chatFeed">
+        <!-- empty state -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">🎓</div>
+          <div class="empty-title">What do you want to understand?</div>
+          <div class="empty-sub">Ask anything from your RGPV CSE 3rd semester syllabus. I'll answer only from your actual course material.</div>
+          <div class="suggested">
+            <div class="sug" onclick="fillQ(this)">Explain binary search trees</div>
+            <div class="sug" onclick="fillQ(this)">What is process scheduling in OS?</div>
+            <div class="sug" onclick="fillQ(this)">Difference between stack and queue</div>
+            <div class="sug" onclick="fillQ(this)">Explain Dijkstra's algorithm</div>
+            <div class="sug" onclick="fillQ(this)">What is normalisation in DBMS?</div>
+            <div class="sug" onclick="fillQ(this)">Explain DFA and NFA</div>
+          </div>
+        </div>
+      </div>
+      <div class="input-area">
+        <div class="input-row">
+          <textarea class="input-box" id="qInput" placeholder="Ask anything from your syllabus…" rows="1"></textarea>
+          <button class="send" id="sendBtn" onclick="sendQuery()">→</button>
+        </div>
+        <div class="input-hint">Answers are sourced strictly from RGPV CSE Sem 3 syllabus · Press Enter to send</div>
+      </div>
+    </div>
+
+    <!-- PYQ VIEW -->
+    <div id="viewPYQ" style="display:none;flex-direction:column;">
+      <div style="padding:28px 10% 0;">
+        <div class="pyq-header">
+          <div class="pyq-title">Previous Year Papers — RGPV CSE Sem 3</div>
+          <div class="pyq-filter">
+            <div class="flt on" onclick="filterPYQ(this,'all')">All</div>
+            <div class="flt" onclick="filterPYQ(this,'2024')">2024</div>
+            <div class="flt" onclick="filterPYQ(this,'2023')">2023</div>
+            <div class="flt" onclick="filterPYQ(this,'2022')">2022</div>
+          </div>
+        </div>
+        <p style="font-size:.8rem;color:var(--text-3);margin-top:6px;margin-bottom:20px;">
+          Showing papers from rgpvonline.com — fetched and cached on demand.
+        </p>
+      </div>
+      <div style="padding:0 10%;display:flex;flex-direction:column;gap:14px;overflow-y:auto;flex:1;">
+        <div class="paper-card fade-in">
+          <div class="paper-top">
+            <span class="paper-year">Nov/Dec 2024</span>
+            <span style="font-size:.72rem;color:var(--text-3);font-family:var(--ff-m);">6 questions · 3 units</span>
+          </div>
+          <div class="paper-sub">Data Structures &amp; Algorithms</div>
+          <div class="paper-meta">RGPV · CSE · 3rd Sem · CS-301</div>
+          <div class="paper-qs">
+            <div class="paper-qtag"><b>Q1.</b> Binary trees &amp; traversals</div>
+            <div class="paper-qtag"><b>Q2.</b> Sorting algorithms</div>
+            <div class="paper-qtag"><b>Q3.</b> Linked list operations</div>
+            <div class="paper-qtag"><b>Q4.</b> Hashing techniques</div>
+            <div class="paper-qtag">+2 more</div>
+          </div>
+        </div>
+        <div class="paper-card fade-in">
+          <div class="paper-top">
+            <span class="paper-year">May/Jun 2024</span>
+            <span style="font-size:.72rem;color:var(--text-3);font-family:var(--ff-m);">6 questions · 3 units</span>
+          </div>
+          <div class="paper-sub">Data Structures &amp; Algorithms</div>
+          <div class="paper-meta">RGPV · CSE · 3rd Sem · CS-301</div>
+          <div class="paper-qs">
+            <div class="paper-qtag"><b>Q1.</b> Stack and Queue</div>
+            <div class="paper-qtag"><b>Q2.</b> Graph traversal BFS/DFS</div>
+            <div class="paper-qtag"><b>Q3.</b> AVL trees</div>
+            <div class="paper-qtag"><b>Q4.</b> Dynamic programming</div>
+            <div class="paper-qtag">+2 more</div>
+          </div>
+        </div>
+        <div class="paper-card fade-in">
+          <div class="paper-top">
+            <span class="paper-year">Nov/Dec 2023</span>
+            <span style="font-size:.72rem;color:var(--text-3);font-family:var(--ff-m);">6 questions · 3 units</span>
+          </div>
+          <div class="paper-sub">Discrete Mathematics</div>
+          <div class="paper-meta">RGPV · CSE · 3rd Sem · CS-302</div>
+          <div class="paper-qs">
+            <div class="paper-qtag"><b>Q1.</b> Set theory &amp; relations</div>
+            <div class="paper-qtag"><b>Q2.</b> Graph theory basics</div>
+            <div class="paper-qtag"><b>Q3.</b> Propositional logic</div>
+            <div class="paper-qtag">+3 more</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRACTICE VIEW -->
+    <div id="viewPractice" style="display:none;flex-direction:column;">
+      <div style="padding:28px 10%;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:16px;">
+        <div class="prac-config">
+          <div class="prac-config-title">Generate Practice Questions</div>
+          <div class="prac-row">
+            <select class="prac-sel">
+              <option>Data Structures</option>
+              <option>Discrete Mathematics</option>
+              <option>Digital Circuits</option>
+              <option>OOP with C++</option>
+            </select>
+            <select class="prac-sel">
+              <option>Unit 1</option>
+              <option>Unit 2</option>
+              <option>Unit 3</option>
+              <option>Unit 4</option>
+              <option>Unit 5</option>
+            </select>
+            <select class="prac-sel">
+              <option>2-mark (Easy)</option>
+              <option>5-mark (Medium)</option>
+              <option>10-mark (Hard)</option>
+              <option>Mixed</option>
+            </select>
+            <button class="gen-btn" onclick="generatePractice()">⚡ Generate 5 Questions</button>
+          </div>
+        </div>
+
+        <div id="practiceOut"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+/* ════════════════════════════════════════════════════
+   CONFIG — single place to flip from demo to live backend
+   ════════════════════════════════════════════════════ */
+const CONFIG = {
+  // ⚠️ Replace with your real deployed backend URL once live (e.g. Render.com).
+  // Never point this at localhost in production — it only works on your own machine.
+  API_BASE_URL: "https://api.uniexai.in", // placeholder — update after backend deploy
+  DEMO_MODE: true // set to false once CONFIG.API_BASE_URL is live and reachable
+};
+
+/* ── REAL COLLEGE LISTS (researched, not placeholders) ──── */
+const COLLEGES_BY_AFFIL = {
+  RGPV: [
+    "RGPV (General / other RGPV-affiliated college)",
+    "Acropolis Institute of Technology & Research",
+    "IPS Academy — Institute of Engineering & Science",
+    "Patel College of Science & Technology (PCST)",
+    "Prestige Institute of Engineering Mgmt. & Research",
+    "Shri Vaishnav Institute of Technology & Science",
+    "LNCT Indore",
+    "Medi-Caps University",
+    "Sushila Devi Bansal College of Technology",
+    "Swami Vivekanand College of Engineering",
+    "Oriental University, Indore",
+    "SAGE University, Indore"
+  ],
+  DAVV: [
+    "IET-DAVV (Institute of Engineering & Technology)",
+    "SCSIT — School of Computer Science & IT, DAVV",
+    "DAVV (General / other DAVV-affiliated college)"
+  ]
+};
+
+/* ── BRANCHES AVAILABLE PER AFFILIATION ─────────────────
+   RGPV currently has zero IT data (confirmed empty during data collection),
+   so it's intentionally excluded rather than shown with fake/empty results. */
+const BRANCHES_BY_AFFIL = {
+  RGPV: ["CSE", "ECE"],
+  DAVV: ["CSE", "ECE", "IT"]
+};
+
+/* ── REAL SUBJECT DATA — extracted directly from indexed syllabus PDFs ──
+   Manually normalized for spelling/formatting after extraction. */
+const SUBJECT_MAP = {
+  RGPV: {
+    CSE: { "3": ["Data Structures", "Digital Systems", "Discrete Structure", "Object Oriented Programming Systems"] }
+  },
+  DAVV: {
+    CSE: {
+      "3": ["Data Structures", "Digital Logic And Computer Organization", "Discrete Mathematics", "Introduction To Indian Knowledge System", "Object Oriented Programming", "Python Programming", "Software Engineering And Agile Development"],
+      "4": ["Applied Statistics", "Artificial Intelligence & Machine Learning Fundamentals", "Database Management Systems", "Introduction To Financial Literacy", "Operating System", "Theory Of Computation"],
+      "6": ["Distributed Systems", "Software Engineering Practices"],
+      "7": ["Artificial Intelligence", "Cloud Computing", "Computer Vision", "Deep Learning", "Distributed Computing", "Optimization Algorithms & Techniques", "Robotics & Numerical Control", "VLSI Design"],
+      "8": ["Data Sciences", "Game AI", "Human Computer Interaction", "Information Retrieval & Extraction", "Information Security", "Parallel Computing", "Soft Computing"]
+    },
+    ECE: {
+      "3": ["Analog Electronics", "Applied Mathematics III", "Data Structure", "Digital Electronics", "Introduction To Indian Knowledge System", "Signal And System Analysis", "Software Workshop I"],
+      "4": ["Analog Communication", "Computer Architecture And Digital Design", "Digital Signal Processing", "Electronic Workshop", "EMF And Transmission Line", "Engineering Economics And Financial Management", "Linear Devices And Application"],
+      "5": ["Computer Networks", "Digital Communication", "Microcontrollers", "Object Oriented Programming", "Principles Of Management", "Software Workshop II", "VLSI Design"],
+      "6": ["AI And Machine Learning", "Control System", "Entrepreneurship And IPR Development", "Internet Of Things", "Mobile And Wireless Communication", "Robotics And System Design Lab", "SoC Design Using HDL"],
+      "7": ["Antenna And Wave Propagation", "Operating System", "Project Phase I", "RF And Microwave Engg", "SoC Design And Verification"],
+      "8": ["Network Security", "Optical Communication", "Project Phase II", "Satellite And Navigation System"]
+    },
+    IT: {
+      "3": ["Computer Organization & Architecture", "Data Structures", "Digital Electronics", "Discrete Mathematics", "IKS And Life Management Skills", "IoT Lab", "Object Oriented Programming"],
+      "4": ["Analysis And Design Of Algorithms", "Applied Statistics", "Database Management Systems", "Information Retrieval", "Introduction To Financial Literacy", "Web Technologies"],
+      "5": ["Computer Networks", "Machine Learning", "Mobile Technology Lab", "Theory Of Computation", "Wireless Protocols And Mobile Networks"],
+      "6": ["Bio-Informatics", "Compiler Design", "Data Analytics", "Design And Analysis Of Algorithms", "Entrepreneurship Development & IPR", "Information Retrieval & Extraction", "Mobile Technology Lab", "Network & Information Security", "Software Testing & Quality Assurance", "Wireless Protocol And Mobile Networks"],
+      "7": ["Artificial Intelligence", "Big Data Analytics", "Cloud Computing", "Computer Graphics", "Machine Learning"],
+      "8": ["Block Chain", "Data Warehousing And Mining", "Principles Of Mobile Computing"]
+    }
+  }
+};
+
+/* ── CASCADING DROPDOWN CONTROLLER ───────────────────── */
+const elAffil   = document.getElementById('selAffil');
+const elCollege = document.getElementById('selCollege');
+const elBranch  = document.getElementById('selBranch');
+const elSem     = document.getElementById('selSem');
+const elChips   = document.getElementById('chipList');
+
+function populateColleges() {
+  const affil = elAffil.value;
+  elCollege.innerHTML = COLLEGES_BY_AFFIL[affil]
+    .map(c => `<option>${c}</option>`).join('');
+}
+
+function populateBranches() {
+  const affil = elAffil.value;
+  const branches = BRANCHES_BY_AFFIL[affil];
+  const current = elBranch.value;
+  elBranch.innerHTML = branches.map(b => `<option>${b}</option>`).join('');
+  // keep previous selection if still valid for this affiliation
+  if (branches.includes(current)) elBranch.value = current;
+}
+
+function populateSubjects() {
+  const affil = elAffil.value;
+  const branch = elBranch.value;
+  const sem = elSem.value;
+  const subjects = SUBJECT_MAP[affil]?.[branch]?.[sem] || [];
+
+  if (subjects.length === 0) {
+    elChips.innerHTML = `<div class="chip-empty">No subject-level breakdown indexed yet for ${affil} · ${branch} · Sem ${sem}. The full semester scheme PDF is still searchable — just ask in the chat below.</div>`;
+    return;
+  }
+
+  elChips.innerHTML = subjects
+    .map((s, i) => `<div class="chip${i === 0 ? ' active' : ''}">${s}</div>`)
+    .join('');
+
+  // re-bind click handlers on freshly created chips
+  elChips.querySelectorAll('.chip').forEach(c => {
+    c.addEventListener('click', () => {
+      elChips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+    });
+  });
+}
+
+function refreshAll() {
+  populateColleges();
+  populateBranches();
+  populateSubjects();
+}
+
+elAffil.addEventListener('change', refreshAll);
+elBranch.addEventListener('change', populateSubjects);
+elSem.addEventListener('change', populateSubjects);
+
+// initial load
+refreshAll();
+
+/* ── VIEW SWITCHING ──────────────────────────────── */
+const views = {Ask:'viewAsk',PYQ:'viewPYQ',Practice:'viewPractice'};
+document.querySelectorAll('.top-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.top-tab').forEach(t=>t.classList.remove('on'));
+    tab.classList.add('on');
+    const v = tab.dataset.view;
+    Object.values(views).forEach(id=>{
+      const el=document.getElementById(id);
+      el.style.display = id===views[v]?'flex':'none';
+    });
+  });
+});
+
+/* ── PYQ FILTER ──────────────────────────────────── */
+function filterPYQ(el,v){
+  document.querySelectorAll('.flt').forEach(f=>f.classList.remove('on'));
+  el.classList.add('on');
+}
+
+/* ── FILL SUGGESTED QUERY ────────────────────────── */
+function fillQ(el){
+  document.getElementById('qInput').value = el.textContent;
+  document.getElementById('qInput').focus();
+}
+
+/* ── TEXTAREA AUTO-GROW ──────────────────────────── */
+const inp = document.getElementById('qInput');
+inp.addEventListener('input',function(){
+  this.style.height='auto';
+  this.style.height=Math.min(this.scrollHeight,120)+'px';
+});
+inp.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendQuery();}
+});
+
+/* ── USAGE TRACKING — starts at 0, real state, backend-ready ──
+   Once CONFIG.DEMO_MODE = false, these numbers sync from the
+   X-RateLimit-Remaining / X-RateLimit-Limit headers the backend
+   already returns (see backend/middleware/rateLimit.js). */
+let dailyUsed = 0;
+let dailyLimit = 10; // free plan default — backend overrides this once connected
+
+function updateUsageDisplay() {
+  const left = Math.max(dailyLimit - dailyUsed, 0);
+  const pct = Math.min((dailyUsed / dailyLimit) * 100, 100);
+  document.getElementById('usageText').textContent = `${dailyUsed} / ${dailyLimit}`;
+  document.getElementById('usageFill').style.width = pct + '%';
+  document.getElementById('usageNote').innerHTML =
+    left > 0
+      ? `${left} quer${left === 1 ? 'y' : 'ies'} left today. <a href="#">Upgrade →</a> for 100/day.`
+      : `Daily limit reached. <a href="#">Upgrade →</a> for 100 queries/day.`;
+  document.getElementById('planBadge').textContent = `Free · ${left}/${dailyLimit} left`;
+}
+updateUsageDisplay(); // initialize at 0/10 on page load
+
+/* ── CHAT STATE ──────────────────────────────────── */
+let chatStarted = false;
+
+const DEMO_RESPONSES = {
+  default:{
+    text:`A <strong>Binary Search Tree (BST)</strong> is a node-based data structure with the property that for every node:<br><br>
+• All values in the <strong>left subtree</strong> are less than the node's value<br>
+• All values in the <strong>right subtree</strong> are greater than the node's value<br><br>
+<strong>Insertion Algorithm:</strong><br>
+1. Start at the root<br>
+2. If value &lt; current node → go left<br>
+3. If value &gt; current node → go right<br>
+4. Insert at the first empty position<br><br>
+Time complexity: <strong>O(h)</strong> where h = height of tree. Best case O(log n), worst case O(n).`,
+    wolfram:true
+  },
+  process:{
+    text:`<strong>Process Scheduling</strong> determines which process runs on the CPU and for how long.<br><br>
+<strong>Key algorithms covered in your syllabus:</strong><br><br>
+• <strong>FCFS</strong> (First Come First Serve) — Non-preemptive, processes execute in arrival order<br>
+• <strong>SJF</strong> (Shortest Job First) — Picks process with least burst time<br>
+• <strong>Round Robin</strong> — Fixed time quantum, preemptive, fair allocation<br>
+• <strong>Priority Scheduling</strong> — CPU assigned based on priority value<br><br>
+<strong>Key metrics:</strong> Turnaround time, Waiting time, CPU utilization, Throughput`,
+    wolfram:false
+  },
+  stack:{
+    text:`<strong>Stack vs Queue — Key Differences:</strong><br><br>
+<strong>Stack (LIFO — Last In First Out)</strong><br>
+• Operations: push(), pop(), peek()<br>
+• One end only (top)<br>
+• Use cases: function call stack, undo operations, expression evaluation<br><br>
+<strong>Queue (FIFO — First In First Out)</strong><br>
+• Operations: enqueue(), dequeue(), front()<br>
+• Two ends: front (remove) and rear (insert)<br>
+• Use cases: process scheduling, BFS traversal, print spooling`,
+    wolfram:false
+  }
+};
+
+function getResponse(q){
+  const ql=q.toLowerCase();
+  if(ql.includes('process')||ql.includes('schedul')||ql.includes(' os ')) return DEMO_RESPONSES.process;
+  if(ql.includes('stack')||ql.includes('queue')) return DEMO_RESPONSES.stack;
+  return DEMO_RESPONSES.default;
+}
+
+/**
+ * Real backend call — wired and ready, just inactive while DEMO_MODE is true.
+ * Switch CONFIG.DEMO_MODE to false once the backend is deployed and
+ * CONFIG.API_BASE_URL points to it (never localhost in production).
+ */
+async function fetchRealAnswer(query, university, branch, semester) {
+  const token = sessionStorage.getItem('uniexai_token'); // see login.html — httpOnly cookie recommended for production instead
+
+  const res = await fetch(`${CONFIG.API_BASE_URL}/api/query`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({ query, university, branch, semester })
+  });
+
+  // Sync real usage numbers from server headers
+  const limitHeader = res.headers.get('X-RateLimit-Limit');
+  const remainingHeader = res.headers.get('X-RateLimit-Remaining');
+  if (limitHeader && remainingHeader) {
+    dailyLimit = parseInt(limitHeader, 10);
+    dailyUsed = dailyLimit - parseInt(remainingHeader, 10);
+    updateUsageDisplay();
+  }
+
+  if (res.status === 429) {
+    const data = await res.json();
+    throw new Error(data.error || 'Daily query limit reached.');
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Something went wrong. Please try again.');
+  }
+  return res.json();
+}
+
+/* ── SEND QUERY ──────────────────────────────────── */
+async function sendQuery(){
+  const q = inp.value.trim();
+  if(!q) return;
+
+  if (CONFIG.DEMO_MODE && dailyUsed >= dailyLimit) {
+    alert('Daily query limit reached on the free plan. (This is enforced for real once the backend is connected.)');
+    return;
+  }
+
+  inp.value=''; inp.style.height='auto';
+
+  if(!chatStarted){
+    chatStarted=true;
+    document.getElementById('emptyState').remove();
+  }
+
+  const feed = document.getElementById('chatFeed');
+  const university = elAffil.value;
+  const branch = elBranch.value;
+  const semester = elSem.value;
+
+  const uRow = document.createElement('div');
+  uRow.className='msg-row user fade-in';
+  uRow.innerHTML=`<div class="bubble user"></div>`;
+  uRow.querySelector('.bubble').textContent = q; // textContent — prevents HTML injection from user input
+  feed.appendChild(uRow);
+  feed.scrollTop=feed.scrollHeight;
+
+  const thinkRow = document.createElement('div');
+  thinkRow.className='msg-row ai fade-in';
+  thinkRow.innerHTML=`
+    <div class="ai-dot">U</div>
+    <div class="thinking">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="think-states">
+        <span class="think-tag" id="thinkLabel">Searching syllabus…</span>
+      </div>
+    </div>`;
+  feed.appendChild(thinkRow);
+  feed.scrollTop=feed.scrollHeight;
+
+  const states=['Searching syllabus…','Retrieving context…','Generating answer…','Citing source…'];
+  let si=0;
+  const stInterval = setInterval(()=>{
+    si=(si+1)%states.length;
+    const lbl=document.getElementById('thinkLabel');
+    if(lbl) lbl.textContent=states[si];
+  },600);
+
+  let answerHtml, sourceText, showWolfram = false;
+
+  try {
+    if (CONFIG.DEMO_MODE) {
+      await new Promise(r=>setTimeout(r,2200));
+      const resp = getResponse(q);
+      answerHtml = resp.text;
+      sourceText = `${university} · ${branch} · Sem ${semester} · (demo response — connect backend for real data)`;
+      showWolfram = resp.wolfram;
+    } else {
+      const data = await fetchRealAnswer(q, university, branch, semester);
+      answerHtml = data.answer;
+      sourceText = data.sources?.map(s => `${s.university} · ${s.branch} · Sem ${s.semester} · ${s.subject}`).join(' | ') || 'No source matched';
+    }
+  } catch (err) {
+    answerHtml = `⚠️ ${err.message}`;
+    sourceText = null;
+  }
+
+  clearInterval(stInterval);
+  feed.removeChild(thinkRow);
+
+  const aiRow=document.createElement('div');
+  aiRow.className='msg-row ai fade-in';
+  aiRow.innerHTML=`
+    <div class="ai-dot">U</div>
+    <div class="bubble ai">
+      <p>${answerHtml}</p>
+      ${sourceText ? `<div class="src-cite">📄 Source: ${sourceText}</div>` : ''}
+      ${showWolfram?`<a class="wolfram-link" href="https://www.wolframalpha.com" target="_blank">🔢 Verify numerically on WolframAlpha</a>`:''}
+    </div>`;
+  feed.appendChild(aiRow);
+  feed.scrollTop=feed.scrollHeight;
+
+  if (CONFIG.DEMO_MODE) {
+    dailyUsed += 1;
+    updateUsageDisplay();
+  }
+  // In live mode, updateUsageDisplay() already ran inside fetchRealAnswer() from server headers
+}
+
+/* ── PRACTICE GENERATOR ──────────────────────────── */
+const sampleQs=[
+  {q:'Define a Binary Search Tree. Explain the insertion algorithm with a suitable example.',marks:5,unit:'Unit 4 — Trees'},
+  {q:'Write pseudocode for in-order traversal of a binary tree. What is its time complexity?',marks:2,unit:'Unit 4 — Trees'},
+  {q:'Explain AVL tree rotations. When is a double rotation required? Give an example.',marks:10,unit:'Unit 4 — Balanced Trees'},
+  {q:'Compare and contrast B-trees and B+ trees with respect to search efficiency.',marks:5,unit:'Unit 5 — Advanced Trees'},
+  {q:'Prove that the height of an AVL tree with n nodes is O(log n).',marks:10,unit:'Unit 4 — Balanced Trees'},
+];
+
+function generatePractice(){
+  const out=document.getElementById('practiceOut');
+  out.innerHTML='';
+  sampleQs.forEach((q,i)=>{
+    const card=document.createElement('div');
+    card.className='q-card fade-in';
+    card.style.animationDelay=(i*.08)+'s';
+    card.innerHTML=`
+      <div class="q-top">
+        <div class="q-num">${i+1}</div>
+        <span style="font-size:.78rem;color:var(--text-2)">Data Structures</span>
+        <span class="q-marks">${q.marks} marks</span>
+      </div>
+      <div class="q-text">${q.q}</div>
+      <div class="q-unit">${q.unit}</div>`;
+    out.appendChild(card);
+  });
+}
+</script>
+</body>
+</html>

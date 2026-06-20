@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNIEX AI — Log in</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05091A;--bg-s:#0B1121;--bg-c:#0F1728;
+  --indigo:#6366F1;--ind-d:rgba(99,102,241,.12);--ind-b:rgba(99,102,241,.22);
+  --cyan:#22D3EE;--text:#EEF2FF;--text-2:#94A3B8;--text-3:#3D4E6B;
+  --border:rgba(255,255,255,.07);
+  --ff-d:'Space Grotesk',sans-serif;--ff-b:'Inter',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--ff-b);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+body::before{
+  content:'';position:absolute;top:-20%;left:50%;transform:translateX(-50%);
+  width:600px;height:600px;
+  background:radial-gradient(circle,rgba(99,102,241,.15) 0%,transparent 70%);
+}
+.card{
+  width:380px;background:var(--bg-s);border:1px solid var(--border);
+  border-radius:16px;padding:36px 32px;position:relative;z-index:1;
+  box-shadow:0 30px 80px rgba(0,0,0,.4);
+}
+.logo{
+  font-family:var(--ff-d);font-size:1.1rem;font-weight:700;letter-spacing:.08em;
+  text-align:center;margin-bottom:28px;
+}
+.logo em{font-style:normal;color:var(--indigo);}
+h1{font-family:var(--ff-d);font-size:1.3rem;font-weight:600;margin-bottom:6px;text-align:center;}
+.sub{font-size:.82rem;color:var(--text-2);text-align:center;margin-bottom:28px;}
+.field{margin-bottom:14px;}
+label{font-size:.75rem;color:var(--text-2);display:block;margin-bottom:6px;}
+input{
+  width:100%;padding:11px 14px;background:var(--bg-c);
+  border:1px solid var(--border);border-radius:8px;color:var(--text);
+  font-size:.875rem;outline:none;transition:border-color .2s;
+}
+input:focus{border-color:var(--ind-b);}
+.submit{
+  width:100%;padding:12px;margin-top:8px;border-radius:8px;
+  background:var(--indigo);color:#fff;border:none;
+  font-size:.875rem;font-weight:500;cursor:pointer;transition:all .2s;
+}
+.submit:hover{background:#4F46E5;box-shadow:0 6px 24px rgba(99,102,241,.4);}
+.divider{
+  display:flex;align-items:center;gap:10px;margin:20px 0;
+  font-size:.72rem;color:var(--text-3);
+}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.foot{text-align:center;font-size:.8rem;color:var(--text-2);margin-top:18px;}
+.foot a{color:var(--indigo);text-decoration:none;}
+.note{
+  margin-top:20px;padding:10px 12px;border-radius:8px;
+  background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);
+  font-size:.72rem;color:#F59E0B;line-height:1.6;
+}
+.error-msg{
+  margin-top:14px;padding:10px 12px;border-radius:8px;
+  background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+  font-size:.78rem;color:#FCA5A5;display:none;
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">UNIEX <em>AI</em></div>
+  <h1>Welcome back</h1>
+  <p class="sub">Log in to continue your exam prep</p>
+
+  <div class="field">
+    <label>Email</label>
+    <input type="email" id="email" placeholder="you@college.edu">
+  </div>
+  <div class="field">
+    <label>Password</label>
+    <input type="password" id="password" placeholder="••••••••">
+  </div>
+  <button class="submit" id="loginBtn">Log in →</button>
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="divider">OR</div>
+  <button class="submit" style="background:var(--bg-c);border:1px solid var(--border);color:var(--text-2);" onclick="window.location.href='app.html'">Continue with Google</button>
+
+  <p class="foot">New here? <a href="app.html">Create a free account</a></p>
+
+  <div class="note" id="modeNote"></div>
+</div>
+
+<script>
+// Same CONFIG pattern as app.html — flip DEMO_MODE once the backend is live.
+const CONFIG = {
+  API_BASE_URL: "https://api.uniexai.in", // placeholder — update after backend deploy
+  DEMO_MODE: true
+};
+
+document.getElementById('modeNote').textContent = CONFIG.DEMO_MODE
+  ? "⚠️ Demo mode — auth backend not connected yet. Logging in drops you into the app directly. Real authentication activates once CONFIG.DEMO_MODE is set to false."
+  : "";
+
+// Simple device fingerprint — combines a few stable browser signals.
+// Production should use a more robust fingerprinting library (e.g. FingerprintJS).
+function getDeviceId() {
+  const raw = [
+    navigator.userAgent,
+    screen.width + 'x' + screen.height,
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+  ].join('|');
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    hash = (hash << 5) - hash + raw.charCodeAt(i);
+    hash |= 0;
+  }
+  return 'dev_' + Math.abs(hash);
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function handleLogin() {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  document.getElementById('errorMsg').style.display = 'none';
+
+  if (!email || !password) {
+    showError('Please enter both email and password.');
+    return;
+  }
+
+  if (CONFIG.DEMO_MODE) {
+    window.location.href = 'app.html';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${CONFIG.API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, deviceId: getDeviceId() })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showError(data.error || 'Login failed.');
+      return;
+    }
+
+    // NOTE: sessionStorage is used here for simplicity. For stronger production
+    // security against XSS token theft, issue the JWT as an httpOnly secure
+    // cookie from the backend instead, so client-side JS can never read it.
+    sessionStorage.setItem('uniexai_token', data.token);
+    window.location.href = 'app.html';
+  } catch (err) {
+    showError('Could not reach the server. Please try again.');
+  }
+}
+
+document.getElementById('loginBtn').addEventListener('click', handleLogin);
+document.getElementById('password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleLogin();
+});
+</script>
+</body>
+</html>

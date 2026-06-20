@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNIEX AI — University Exam Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #05091A;
+  --bg-s:      #0B1121;
+  --bg-card:   #0F1728;
+  --indigo:    #6366F1;
+  --indigo-d:  rgba(99,102,241,0.12);
+  --cyan:      #22D3EE;
+  --cyan-d:    rgba(34,211,238,0.12);
+  --text:      #EEF2FF;
+  --text-2:    #94A3B8;
+  --text-3:    #3D4E6B;
+  --border:    rgba(99,102,241,0.15);
+  --border-s:  rgba(255,255,255,0.055);
+  --r-sm:      8px;
+  --r-md:      12px;
+  --r-lg:      18px;
+  --ff-d:      'Space Grotesk', sans-serif;
+  --ff-b:      'Inter', sans-serif;
+  --ff-m:      'JetBrains Mono', monospace;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; font-size:16px; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ff-b);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── CANVAS ─────────────────────────────────────────── */
+#cvs {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.z1 { position:relative; z-index:1; }
+
+/* ── NAV ─────────────────────────────────────────────── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  padding: 0 56px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  background: rgba(5,9,26,0.72);
+  border-bottom: 1px solid var(--border-s);
+}
+
+.logo {
+  font-family: var(--ff-d);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+.logo em { font-style:normal; color: var(--indigo); }
+
+nav ul {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+}
+nav ul a {
+  color: var(--text-2);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color .2s;
+}
+nav ul a:hover { color: var(--text); }
+
+.nav-r { display:flex; gap:10px; align-items:center; }
+
+/* ── BUTTONS ─────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: var(--r-sm);
+  font-family: var(--ff-b);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all .2s;
+  border: none;
+  white-space: nowrap;
+}
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-s);
+  color: var(--text-2);
+}
+.btn-ghost:hover { border-color:var(--indigo); color:var(--text); }
+
+.btn-primary {
+  background: var(--indigo);
+  color: #fff;
+  border: 1px solid rgba(99,102,241,.45);
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background: linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 55%);
+  pointer-events:none;
+}
+.btn-primary:hover {
+  background: #4F46E5;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(99,102,241,.45);
+}
+.btn-lg { padding:13px 26px; font-size:0.95rem; border-radius:10px; }
+
+/* ── HERO ────────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 100px 24px 60px;
+  position: relative;
+}
+
+/* radial glow behind hero text */
+.hero::before {
+  content:'';
+  position:absolute;
+  top:20%;
+  left:50%;
+  transform:translateX(-50%);
+  width:700px;
+  height:400px;
+  background: radial-gradient(ellipse at center,rgba(99,102,241,.18) 0%,transparent 70%);
+  pointer-events:none;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 100px;
+  background: var(--indigo-d);
+  border: 1px solid rgba(99,102,241,.3);
+  font-family: var(--ff-m);
+  font-size: 0.7rem;
+  color: #A5B4FC;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  opacity:0;
+  animation: fu .6s ease forwards .1s;
+}
+.dot {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--indigo);
+  animation: pulse 2s ease infinite;
+}
+
+h1 {
+  font-family: var(--ff-d);
+  font-size: clamp(2.6rem, 6.5vw, 5rem);
+  font-weight: 700;
+  line-height: 1.07;
+  letter-spacing: -.035em;
+  max-width: 840px;
+  margin-bottom: 22px;
+  opacity:0;
+  animation: fu .7s ease forwards .3s;
+}
+h1 .grad {
+  background: linear-gradient(130deg, #818CF8 0%, #22D3EE 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 1.05rem;
+  color: var(--text-2);
+  max-width: 500px;
+  line-height: 1.75;
+  margin-bottom: 36px;
+  opacity:0;
+  animation: fu .7s ease forwards .5s;
+}
+
+.hero-btns {
+  display:flex; gap:12px; align-items:center;
+  opacity:0; animation: fu .7s ease forwards .7s;
+}
+
+.hero-tags {
+  display:flex; gap:10px; flex-wrap:wrap; justify-content:center;
+  margin-top: 52px;
+  opacity:0; animation: fu .7s ease forwards .9s;
+}
+.tag {
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: var(--bg-s);
+  border: 1px solid var(--border-s);
+  font-family: var(--ff-m);
+  font-size: 0.68rem;
+  color: var(--text-3);
+  letter-spacing:.04em;
+}
+
+/* ── SCROLL REVEAL ──────────────────────────────────── */
+.rev {
+  opacity:0;
+  transform: translateY(28px);
+  transition: opacity .65s ease, transform .65s ease;
+}
+.rev.on { opacity:1; transform:translateY(0); }
+.rev-d1 { transition-delay:.1s; }
+.rev-d2 { transition-delay:.2s; }
+.rev-d3 { transition-delay:.3s; }
+
+/* ── STATS ───────────────────────────────────────────── */
+.stats {
+  border-top: 1px solid var(--border-s);
+  border-bottom: 1px solid var(--border-s);
+  background: var(--bg-s);
+  padding: 28px 60px;
+  display: flex;
+  justify-content: center;
+  gap: 72px;
+}
+.stat { text-align:center; }
+.stat-n {
+  font-family: var(--ff-d);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing:-.04em;
+  line-height:1;
+}
+.stat-n b { color:var(--indigo); font-weight:700; }
+.stat-l { font-size:.75rem; color:var(--text-3); margin-top:5px; letter-spacing:.02em; }
+
+/* ── DEMO WINDOW ─────────────────────────────────────── */
+.demo-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 72px 24px;
+}
+.demo-win {
+  background: var(--bg-s);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(99,102,241,.06),
+    0 0 80px rgba(99,102,241,.12),
+    0 40px 80px rgba(0,0,0,.4);
+}
+.win-bar {
+  background: var(--bg-card);
+  padding: 11px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--border-s);
+}
+.tlights { display:flex; gap:6px; }
+.tl { width:10px; height:10px; border-radius:50%; }
+.tl-r{background:#FF5F57;} .tl-y{background:#FEBC2E;} .tl-g{background:#28C840;}
+.win-url {
+  flex:1; text-align:center;
+  font-family:var(--ff-m); font-size:.72rem; color:var(--text-3);
+}
+.win-body { display:flex; height:340px; }
+
+.win-side {
+  width:196px;
+  border-right: 1px solid var(--border-s);
+  padding: 16px;
+  display:flex; flex-direction:column; gap:10px;
+  flex-shrink:0;
+}
+.side-label {
+  font-family:var(--ff-m); font-size:.6rem; color:var(--text-3);
+  text-transform:uppercase; letter-spacing:.08em; margin-bottom:2px; margin-top:6px;
+}
+.side-sel {
+  width:100%; padding:8px 10px;
+  background:var(--bg-card); border:1px solid var(--border-s);
+  border-radius:var(--r-sm); color:var(--text-2);
+  font-size:.8rem; font-family:var(--ff-b);
+  appearance:none; cursor:pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7FA3' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center;
+}
+.side-tabs {
+  margin-top:auto; display:flex; flex-direction:column; gap:4px;
+}
+.side-tab {
+  padding:8px 10px; border-radius:var(--r-sm);
+  font-size:.78rem; color:var(--text-2);
+  cursor:pointer; transition:all .2s;
+  border:1px solid transparent;
+}
+.side-tab:hover { background:var(--bg-card); color:var(--text); }
+.side-tab.active {
+  background:var(--indigo-d);
+  border-color:rgba(99,102,241,.25);
+  color:#A5B4FC;
+}
+
+.win-main { flex:1; display:flex; flex-direction:column; }
+.chat-area {
+  flex:1; padding:20px; overflow-y:auto;
+  display:flex; flex-direction:column; gap:14px;
+}
+.msg-u {
+  align-self:flex-end;
+  background:var(--indigo-d);
+  border:1px solid rgba(99,102,241,.2);
+  border-radius:12px 12px 2px 12px;
+  padding:10px 14px;
+  font-size:.84rem;
+  max-width:68%;
+  line-height:1.55;
+}
+.msg-ai {
+  align-self:flex-start;
+  background:var(--bg-card);
+  border:1px solid var(--border-s);
+  border-radius:2px 12px 12px 12px;
+  padding:13px 16px;
+  font-size:.82rem;
+  max-width:82%;
+  color:var(--text-2);
+  line-height:1.65;
+}
+.msg-src {
+  display:inline-flex; align-items:center; gap:5px;
+  margin-top:9px; padding:3px 8px;
+  border-radius:4px;
+  background:rgba(34,211,238,.08);
+  border:1px solid rgba(34,211,238,.15);
+  font-family:var(--ff-m); font-size:.62rem; color:var(--cyan);
+}
+.blink {
+  display:inline-block; width:2px; height:.9em;
+  background:var(--cyan); margin-left:2px;
+  vertical-align:middle; animation:blink 1s step-end infinite;
+}
+.chat-input-row {
+  padding:12px 14px;
+  border-top:1px solid var(--border-s);
+  display:flex; gap:8px;
+}
+.chat-inp {
+  flex:1; background:var(--bg-card);
+  border:1px solid var(--border-s);
+  border-radius:var(--r-sm);
+  padding:9px 13px;
+  color:var(--text-3); font-size:.8rem; font-family:var(--ff-b);
+  outline:none;
+}
+.send-btn {
+  padding:8px 16px; font-size:.8rem;
+}
+
+/* ── SECTION SHELL ───────────────────────────────────── */
+.sec {
+  max-width:1080px;
+  margin:0 auto;
+  padding:80px 24px;
+}
+.eyebrow {
+  font-family:var(--ff-m); font-size:.68rem; color:var(--indigo);
+  text-transform:uppercase; letter-spacing:.1em; margin-bottom:12px;
+}
+.sec-h {
+  font-family:var(--ff-d);
+  font-size:clamp(1.9rem,3.8vw,2.6rem);
+  font-weight:700; letter-spacing:-.035em; line-height:1.12;
+  margin-bottom:14px;
+}
+.sec-p {
+  font-size:.975rem; color:var(--text-2);
+  max-width:480px; line-height:1.75; margin-bottom:52px;
+}
+
+/* ── FEATURE GRID ────────────────────────────────────── */
+.feat-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:16px;
+}
+.feat-card {
+  background:var(--bg-s);
+  border:1px solid var(--border-s);
+  border-radius:var(--r-lg);
+  padding:28px 26px;
+  position:relative; overflow:hidden;
+  cursor:default;
+  transition: border-color .3s, transform .3s, box-shadow .3s;
+}
+.feat-card::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:radial-gradient(circle at 50% -10%,rgba(99,102,241,.15) 0%,transparent 65%);
+  opacity:0;
+  transition:opacity .35s;
+}
+.feat-card:hover {
+  border-color:rgba(99,102,241,.32);
+  transform:translateY(-5px);
+  box-shadow:0 16px 48px rgba(99,102,241,.1);
+}
+.feat-card:hover::after { opacity:1; }
+.feat-icon {
+  width:44px; height:44px; border-radius:10px;
+  background:var(--indigo-d); border:1px solid rgba(99,102,241,.2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.15rem; margin-bottom:18px;
+  position:relative; z-index:1;
+}
+.feat-name {
+  font-family:var(--ff-d); font-size:.975rem; font-weight:600;
+  margin-bottom:9px; position:relative; z-index:1;
+}
+.feat-desc {
+  font-size:.845rem; color:var(--text-2); line-height:1.7;
+  position:relative; z-index:1;
+}
+
+/* ── HOW IT WORKS ────────────────────────────────────── */
+.hiw { text-align:center; max-width:780px; }
+.hiw-grid {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:0; position:relative;
+}
+.hiw-grid::before {
+  content:'';
+  position:absolute;
+  top:27px; left:calc(16.7% + 27px); right:calc(16.7% + 27px);
+  height:1px;
+  background:linear-gradient(90deg,var(--indigo),var(--cyan));
+  opacity:.25;
+}
+.hiw-step { padding:0 20px; }
+.hiw-num {
+  width:54px; height:54px; border-radius:50%;
+  background:var(--bg-s);
+  border:1px solid rgba(99,102,241,.28);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--ff-d); font-size:1rem; font-weight:700;
+  color:var(--indigo); margin:0 auto 18px;
+  position:relative; z-index:1;
+}
+.hiw-title {
+  font-family:var(--ff-d); font-size:.95rem; font-weight:600; margin-bottom:8px;
+}
+.hiw-desc { font-size:.84rem; color:var(--text-2); line-height:1.7; }
+
+/* ── PRICING ─────────────────────────────────────────── */
+.price-grid {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:18px; align-items:start;
+}
+.pc {
+  background:var(--bg-s); border:1px solid var(--border-s);
+  border-radius:var(--r-lg); padding:28px 24px;
+  position:relative; transition:border-color .3s,box-shadow .3s;
+}
+.pc:hover { border-color:rgba(99,102,241,.3); }
+.pc.hot {
+  border-color:rgba(99,102,241,.4);
+  background:linear-gradient(140deg,rgba(99,102,241,.09),var(--bg-s) 60%);
+  box-shadow:0 0 0 1px rgba(99,102,241,.08), 0 24px 64px rgba(99,102,241,.16);
+}
+.pc-badge {
+  position:absolute; top:-11px; left:50%; transform:translateX(-50%);
+  padding:3px 14px; border-radius:100px;
+  background:var(--indigo);
+  font-size:.68rem; font-weight:600; color:#fff; white-space:nowrap;
+}
+.pc-plan {
+  font-family:var(--ff-m); font-size:.65rem; color:var(--text-3);
+  text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px;
+}
+.pc-price {
+  font-family:var(--ff-d); font-size:2.4rem; font-weight:700;
+  letter-spacing:-.04em; line-height:1;
+}
+.pc-price sup { font-size:.95rem; font-weight:500; color:var(--text-2); }
+.pc-period { font-size:.78rem; color:var(--text-3); margin-top:4px; margin-bottom:22px; }
+.pc-divider { height:1px; background:var(--border-s); margin-bottom:18px; }
+.pc-feat {
+  display:flex; align-items:center; gap:10px;
+  font-size:.84rem; color:var(--text-2); margin-bottom:11px;
+}
+.pc-feat .ck { color:var(--indigo); font-size:.85rem; }
+.pc-feat .cx { color:var(--text-3); font-size:.85rem; }
+.pc-cta {
+  display:block; width:100%; text-align:center;
+  padding:11px; border-radius:var(--r-sm);
+  font-size:.875rem; font-weight:500; font-family:var(--ff-b);
+  cursor:pointer; text-decoration:none; margin-top:22px;
+  transition:all .2s; border:none;
+}
+.pc-outline {
+  background:transparent; border:1px solid var(--border-s); color:var(--text-2);
+}
+.pc-outline:hover { border-color:var(--indigo); color:var(--text); }
+.pc-solid {
+  background:var(--indigo); color:#fff;
+  border:1px solid rgba(99,102,241,.4);
+}
+.pc-solid:hover {
+  background:#4F46E5;
+  box-shadow:0 6px 24px rgba(99,102,241,.4);
+}
+
+/* ── CTA BAND ─────────────────────────────────────────── */
+.cta-band {
+  margin:0 24px 72px;
+  max-width:1080px;
+  margin-left:auto; margin-right:auto;
+  background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(34,211,238,.06));
+  border:1px solid rgba(99,102,241,.22);
+  border-radius:var(--r-lg);
+  padding:56px 48px;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:32px;
+}
+.cta-band h2 {
+  font-family:var(--ff-d); font-size:clamp(1.5rem,3vw,2rem);
+  font-weight:700; letter-spacing:-.03em; line-height:1.2;
+  max-width:420px;
+}
+.cta-band h2 span { color:var(--indigo); }
+
+/* ── FOOTER ──────────────────────────────────────────── */
+footer {
+  border-top:1px solid var(--border-s);
+  padding:28px 56px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.foot-l { font-family:var(--ff-d); font-size:1rem; font-weight:700; letter-spacing:.08em; }
+.foot-l em { font-style:normal; color:var(--indigo); }
+.foot-copy { font-size:.75rem; color:var(--text-3); }
+.foot-links { display:flex; gap:22px; }
+.foot-links a { font-size:.75rem; color:var(--text-3); text-decoration:none; }
+.foot-links a:hover { color:var(--text-2); }
+
+/* ── KEYFRAMES ───────────────────────────────────────── */
+@keyframes fu {
+  from { opacity:0; transform:translateY(18px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:.5; transform:scale(.75); }
+}
+@keyframes blink {
+  0%,100% { opacity:1; }
+  50%      { opacity:0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── PARTICLE CANVAS ──────────────────────────────── -->
+<canvas id="cvs"></canvas>
+
+<!-- ── NAV ─────────────────────────────────────────── -->
+<nav class="z1">
+  <div class="logo">UNIEX <em>AI</em></div>
+  <ul>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <div class="nav-r">
+    <a href="login.html" class="btn btn-ghost">Log in</a>
+    <a href="app.html" class="btn btn-primary">Start free</a>
+  </div>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────── -->
+<section class="hero z1">
+  <div class="badge"><div class="dot"></div>Now in Beta — RGPV &amp; DAVV</div>
+  <h1>Your university exams.<br><span class="grad">Finally cracked.</span></h1>
+  <p class="hero-sub">AI that knows your exact syllabus. Ask anything about your semester — get direct, source-cited answers from your actual course material.</p>
+  <div class="hero-btns">
+    <a href="app.html" class="btn btn-primary btn-lg">Start preparing free →</a>
+    <a href="#features" class="btn btn-ghost btn-lg">See how it works</a>
+  </div>
+  <div class="hero-tags">
+    <span class="tag">RGPV · BTech CSE</span>
+    <span class="tag">RGPV · BTech ECE</span>
+    <span class="tag">DAVV · BTech CSE</span>
+    <span class="tag">DAVV · BTech IT</span>
+    <span class="tag">DAVV · BTech ECE</span>
+  </div>
+</section>
+
+<!-- ── STATS ─────────────────────────────────────────── -->
+<div class="stats z1 rev">
+  <div class="stat"><div class="stat-n">144<b>+</b></div><div class="stat-l">Syllabus documents indexed</div></div>
+  <div class="stat"><div class="stat-n">1.7<b>L+</b></div><div class="stat-l">Words of course content</div></div>
+  <div class="stat"><div class="stat-n">2</div><div class="stat-l">Universities covered</div></div>
+  <div class="stat"><div class="stat-n">8</div><div class="stat-l">Semesters per branch</div></div>
+</div>
+
+<!-- ── DEMO WINDOW ───────────────────────────────────── -->
+<div class="demo-wrap z1 rev">
+  <div class="demo-win">
+    <div class="win-bar">
+      <div class="tlights"><div class="tl tl-r"></div><div class="tl tl-y"></div><div class="tl tl-g"></div></div>
+      <div class="win-url">uniexai.in/app</div>
+    </div>
+    <div class="win-body">
+      <div class="win-side">
+        <div class="side-label">University</div>
+        <select class="side-sel"><option>RGPV</option><option>DAVV</option></select>
+        <div class="side-label">Branch</div>
+        <select class="side-sel"><option>CSE</option><option>ECE</option><option>IT</option></select>
+        <div class="side-label">Semester</div>
+        <select class="side-sel" id="demoSem"><option>1st Sem</option><option>2nd Sem</option><option selected>3rd Sem</option><option>4th Sem</option><option>5th Sem</option><option>6th Sem</option><option>7th Sem</option><option>8th Sem</option></select>
+        <div class="side-tabs">
+          <div class="side-tab active">💬 Ask AI</div>
+          <div class="side-tab">📄 PYQs</div>
+          <div class="side-tab">⚡ Practice</div>
+        </div>
+      </div>
+      <div class="win-main">
+        <div class="chat-area" id="chatArea">
+          <div class="msg-u">Explain binary search trees and insertion algorithm</div>
+          <div class="msg-ai" id="aiMsg">
+            <span id="typeTarget"></span><span class="blink" id="cur"></span>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-inp" id="demoInput" placeholder="Ask anything from your syllabus…">
+          <a href="#" class="btn btn-primary send-btn" id="demoAskBtn">Ask →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FEATURES ──────────────────────────────────────── -->
+<section class="sec z1 rev" id="features">
+  <div class="eyebrow">Features</div>
+  <h2 class="sec-h">Everything you need.<br>Nothing you don't.</h2>
+  <p class="sec-p">Built specifically for Indian university semester exams. Not JEE, not NEET — your syllabus, your papers, your prep.</p>
+  <div class="feat-grid">
+    <div class="feat-card rev rev-d1">
+      <div class="feat-icon">🎯</div>
+      <div class="feat-name">Syllabus-Grounded AI</div>
+      <p class="feat-desc">Every answer comes from your university's official course material. No hallucination. If it's not in your syllabus, it won't be in the answer.</p>
+    </div>
+    <div class="feat-card rev rev-d2">
+      <div class="feat-icon">📄</div>
+      <div class="feat-name">PYQ Intelligence</div>
+      <p class="feat-desc">10+ years of previous question papers organized by subject, unit, and topic. Know what repeats. Know what to prioritize before exams.</p>
+    </div>
+    <div class="feat-card rev rev-d3">
+      <div class="feat-icon">⚡</div>
+      <div class="feat-name">Unlimited Practice</div>
+      <p class="feat-desc">AI generates fresh 2-mark, 5-mark, and 10-mark questions based on your exact syllabus units. Never run out of practice material again.</p>
+    </div>
+    <div class="feat-card rev rev-d1">
+      <div class="feat-icon">📐</div>
+      <div class="feat-name">WolframAlpha Integration</div>
+      <p class="feat-desc">Every numerical or mathematical query gets a direct solve link pre-filled with your equation. Complex maths resolved in one click.</p>
+    </div>
+    <div class="feat-card rev rev-d2">
+      <div class="feat-icon">🔔</div>
+      <div class="feat-name">Exam Timetable Alerts</div>
+      <p class="feat-desc">WhatsApp notifications when your exam timetable drops. Reminders 5 days before each paper. Never miss an exam date again.</p>
+    </div>
+    <div class="feat-card rev rev-d3">
+      <div class="feat-icon">🧾</div>
+      <div class="feat-name">Source Attribution</div>
+      <p class="feat-desc">Every AI answer cites its exact source — university, branch, semester, unit. You always know exactly where the information came from.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ───────────────────────────────────── -->
+<section class="sec z1 rev hiw" id="how" style="text-align:center; max-width:760px;">
+  <div class="eyebrow">How it works</div>
+  <h2 class="sec-h">Three steps.<br>Zero confusion.</h2>
+  <p class="sec-p" style="margin:0 auto 52px;">Set up once. The AI remembers your university, branch, and semester so you never repeat yourself.</p>
+  <div class="hiw-grid">
+    <div class="hiw-step rev rev-d1">
+      <div class="hiw-num">1</div>
+      <div class="hiw-title">Pick your profile</div>
+      <p class="hiw-desc">Choose your university, branch, and semester. 20 seconds. Saved permanently on your account.</p>
+    </div>
+    <div class="hiw-step rev rev-d2">
+      <div class="hiw-num">2</div>
+      <div class="hiw-title">Ask anything</div>
+      <p class="hiw-desc">Type any topic, concept, or past question from your syllabus — however you'd naturally phrase it.</p>
+    </div>
+    <div class="hiw-step rev rev-d3">
+      <div class="hiw-num">3</div>
+      <div class="hiw-title">Get precise answers</div>
+      <p class="hiw-desc">Direct, structured answers with source citations. Grounded strictly in your actual course content.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── PRICING ────────────────────────────────────────── -->
+<section class="sec z1 rev" id="pricing">
+  <div class="eyebrow">Pricing</div>
+  <h2 class="sec-h">Less than one coaching class.<br>Useful for a full semester.</h2>
+  <p class="sec-p">Start free. Upgrade only when you need more — and only pay for the time you actually use it.</p>
+  <div class="price-grid">
+    <div class="pc rev rev-d1">
+      <div class="pc-plan">Free</div>
+      <div class="pc-price">₹0</div>
+      <div class="pc-period">forever</div>
+      <div class="pc-divider"></div>
+      <div class="pc-feat"><span class="ck">✓</span> 10 AI queries per day</div>
+      <div class="pc-feat"><span class="ck">✓</span> Syllabus breakdown</div>
+      <div class="pc-feat"><span class="ck">✓</span> Exam timetable alerts</div>
+      <div class="pc-feat"><span class="cx">✗</span> PYQ access (limited)</div>
+      <div class="pc-feat"><span class="cx">✗</span> Practice questions</div>
+      <a href="#" class="pc-cta pc-outline">Get started free</a>
+    </div>
+    <div class="pc hot rev rev-d2">
+      <div class="pc-badge">Most popular</div>
+      <div class="pc-plan">Per Semester</div>
+      <div class="pc-price"><sup>₹</sup>499</div>
+      <div class="pc-period">for 6 months · best value</div>
+      <div class="pc-divider"></div>
+      <div class="pc-feat"><span class="ck">✓</span> 100 AI queries per day</div>
+      <div class="pc-feat"><span class="ck">✓</span> Full PYQ access (10+ years)</div>
+      <div class="pc-feat"><span class="ck">✓</span> Unlimited practice questions</div>
+      <div class="pc-feat"><span class="ck">✓</span> All difficulty levels (2/5/10 mark)</div>
+      <div class="pc-feat"><span class="ck">✓</span> Priority AI response speed</div>
+      <a href="#" class="pc-cta pc-solid">Start semester plan →</a>
+    </div>
+    <div class="pc rev rev-d3">
+      <div class="pc-plan">Monthly</div>
+      <div class="pc-price"><sup>₹</sup>199</div>
+      <div class="pc-period">per month</div>
+      <div class="pc-divider"></div>
+      <div class="pc-feat"><span class="ck">✓</span> 100 AI queries per day</div>
+      <div class="pc-feat"><span class="ck">✓</span> Full PYQ access</div>
+      <div class="pc-feat"><span class="ck">✓</span> Unlimited practice questions</div>
+      <div class="pc-feat"><span class="ck">✓</span> All difficulty levels</div>
+      <div class="pc-feat"><span class="cx">✗</span> Semester pack discount</div>
+      <a href="#" class="pc-cta pc-outline">Start monthly</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA BAND ───────────────────────────────────────── -->
+<div class="cta-band z1 rev">
+  <h2>Stop guessing what's<br>in your exam. <span>Know.</span></h2>
+  <div style="display:flex;gap:12px;flex-shrink:0;">
+    <a href="app.html" class="btn btn-primary btn-lg">Start free — takes 30 seconds</a>
+  </div>
+</div>
+
+<!-- ── FOOTER ─────────────────────────────────────────── -->
+<footer class="z1">
+  <div class="foot-l">UNIEX <em>AI</em></div>
+  <div class="foot-copy">© 2025 UniExamAI. Built for Indian university students.</div>
+  <div class="foot-links">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Contact</a>
+  </div>
+</footer>
+
+<script>
+/* ── PARTICLE SYSTEM ──────────────────────────────── */
+(function(){
+  const cvs = document.getElementById('cvs');
+  const ctx = cvs.getContext('2d');
+  let W, H, particles = [], mouse = {x:-9999,y:-9999};
+  const N = 72, CONN = 130, SPEED = 0.28;
+
+  function resize(){
+    W = cvs.width  = window.innerWidth;
+    H = cvs.height = window.innerHeight;
+  }
+
+  function Particle(){
+    this.x  = Math.random()*W;
+    this.y  = Math.random()*H;
+    this.vx = (Math.random()-.5)*SPEED;
+    this.vy = (Math.random()-.5)*SPEED;
+    this.r  = Math.random()*1.5+.5;
+  }
+
+  function init(){
+    resize();
+    particles = Array.from({length:N},()=>new Particle());
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // Update + draw dots
+    for(let p of particles){
+      p.x += p.vx; p.y += p.vy;
+      if(p.x<0||p.x>W) p.vx*=-1;
+      if(p.y<0||p.y>H) p.vy*=-1;
+      // gentle mouse repulsion
+      const dx=p.x-mouse.x, dy=p.y-mouse.y, d=Math.sqrt(dx*dx+dy*dy);
+      if(d<100){ p.vx+=dx/d*.04; p.vy+=dy/d*.04; }
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(99,102,241,.55)';
+      ctx.fill();
+    }
+    // Draw connections
+    for(let i=0;i<N;i++){
+      for(let j=i+1;j<N;j++){
+        const a=particles[i],b=particles[j];
+        const dx=a.x-b.x, dy=a.y-b.y, dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<CONN){
+          const alpha=(1-dist/CONN)*.18;
+          // indigo→cyan gradient on lines
+          const gr=ctx.createLinearGradient(a.x,a.y,b.x,b.y);
+          gr.addColorStop(0,`rgba(99,102,241,${alpha})`);
+          gr.addColorStop(1,`rgba(34,211,238,${alpha})`);
+          ctx.beginPath();
+          ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+          ctx.strokeStyle=gr; ctx.lineWidth=.7;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize',()=>{resize();});
+  window.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
+  init(); draw();
+})();
+
+/* ── DEMO TYPING ANIMATION ──────────────────────── */
+(function(){
+  const text = "A Binary Search Tree (BST) is a node-based data structure where each node has at most two children. For any node:\n• Left child value < parent value\n• Right child value > parent value\n\nInsertion: Compare with root → traverse left if smaller, right if larger → insert at empty position. Time complexity: O(h) where h = tree height.";
+  const el = document.getElementById('typeTarget');
+  const cur = document.getElementById('cur');
+  let i = 0, started = false;
+
+  function type(){
+    if(i < text.length){
+      el.textContent += text[i++];
+      setTimeout(type, i < 5 ? 40 : 18);
+    } else {
+      cur.style.display = 'none';
+      // add source badge
+      const badge = document.createElement('div');
+      badge.className = 'msg-src';
+      badge.textContent = '📄 RGPV · CSE · Sem 3 · Data Structures — Unit 4';
+      el.parentElement.appendChild(badge);
+    }
+  }
+
+  // Start when demo window scrolls into view
+  const obs = new IntersectionObserver(entries=>{
+    if(entries[0].isIntersecting && !started){ started=true; setTimeout(type,600); }
+  },{threshold:.5});
+  obs.observe(document.querySelector('.demo-win'));
+})();
+
+/* ── DEMO INPUT — LIVE INTERACTIVE PREVIEW ───────── */
+(function(){
+  const input = document.getElementById('demoInput');
+  const askBtn = document.getElementById('demoAskBtn');
+  const chatArea = document.getElementById('chatArea');
+
+  const responses = {
+    default: `A <strong>Binary Search Tree (BST)</strong> is a node-based structure where left children are smaller and right children are larger than their parent. Insertion runs in O(h) time, where h is tree height.`,
+    queue: `<strong>Queue</strong> follows FIFO (First In First Out). Core operations: enqueue() adds to the rear, dequeue() removes from the front. Used in BFS, scheduling, and buffering.`,
+    os: `<strong>Process Scheduling</strong> decides which process runs next on the CPU. Key algorithms: FCFS, SJF, Round Robin, and Priority Scheduling — each trading off fairness vs throughput.`,
+    dbms: `<strong>Normalisation</strong> organizes database tables to reduce redundancy. 1NF removes repeating groups, 2NF removes partial dependency, 3NF removes transitive dependency.`
+  };
+
+  function pickResponse(q){
+    const ql = q.toLowerCase();
+    if(ql.includes('queue')||ql.includes('stack')) return responses.queue;
+    if(ql.includes('schedul')||ql.includes('process')||ql.includes('os')) return responses.os;
+    if(ql.includes('normal')||ql.includes('dbms')||ql.includes('database')) return responses.dbms;
+    return responses.default;
+  }
+
+  function ask(){
+    const q = input.value.trim();
+    if(!q) return;
+
+    // Add user message
+    const uMsg = document.createElement('div');
+    uMsg.className = 'msg-u';
+    uMsg.textContent = q;
+    chatArea.appendChild(uMsg);
+    input.value = '';
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+    // Thinking placeholder
+    const aiMsg = document.createElement('div');
+    aiMsg.className = 'msg-ai';
+    aiMsg.innerHTML = '<span style="font-family:JetBrains Mono,monospace;font-size:.7rem;color:#22D3EE;">Searching syllabus…</span>';
+    chatArea.appendChild(aiMsg);
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+    setTimeout(()=>{
+      aiMsg.innerHTML = pickResponse(q) +
+        '<div class="msg-src">📄 RGPV · CSE · Sem 3 · Data Structures</div>';
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }, 1100);
+  }
+
+  askBtn.addEventListener('click', e=>{ e.preventDefault(); ask(); });
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); ask(); } });
+})();
+
+/* ── SCROLL REVEAL ───────────────────────────────── */
+(function(){
+  const els = document.querySelectorAll('.rev');
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('on'); });
+  },{threshold:.12});
+  els.forEach(el=>obs.observe(el));
+})();
+
+/* ── SIDEBAR TAB INTERACTION ─────────────────────── */
+document.querySelectorAll('.side-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.side-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+});
+
+/* ── NAV SCROLL EFFECT ───────────────────────────── */
+window.addEventListener('scroll',()=>{
+  document.querySelector('nav').style.borderBottomColor =
+    window.scrollY > 40 ? 'rgba(99,102,241,.18)' : 'rgba(255,255,255,.055)';
+});
+</script>
+</body>
+</html>
