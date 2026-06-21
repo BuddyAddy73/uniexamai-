@@ -68,26 +68,7 @@ async function requireActiveSubscription(req, res, next) {
   next();
 }
 
-// --- Device Management Helpers ---
-// In production these hit PostgreSQL via Supabase
-// Stubbed here for structure clarity
-
-async function getActiveDevices(userId) {
-  // SELECT * FROM user_devices WHERE user_id = userId ORDER BY last_seen DESC
-  return []; // stub
-}
-
-async function registerDevice(userId, deviceId) {
-  // INSERT INTO user_devices (user_id, device_id, registered_at, last_seen)
-  // ON CONFLICT UPDATE last_seen
-  return true; // stub
-}
-
-async function removeOldestDevice(userId) {
-  // DELETE FROM user_devices WHERE id = (
-  //   SELECT id FROM user_devices WHERE user_id = userId ORDER BY last_seen ASC LIMIT 1
-  // )
-  return true; // stub
-}
+// --- Device Management Helpers — real Supabase queries (see services/db.js) ---
+const { getActiveDevices, registerDevice, removeOldestDevice } = require("../services/db");
 
 module.exports = { requireAuth, requireActiveSubscription };

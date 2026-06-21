@@ -1,14 +1,7 @@
 /**
  * UniExamAI — Auth Routes
- * Real password hashing (bcrypt) + JWT issuance + login brute-force protection.
- *
- * NOTE ON WHAT'S REAL VS STUBBED:
- * - Password hashing, comparison, JWT signing: REAL, production-correct logic.
- * - Database reads/writes (findUserByEmail, createUser, etc.): STUBBED.
- *   Wire these to Supabase/PostgreSQL queries before going live — see TODOs.
- * Without that DB wiring, registering/logging in won't actually persist
- * users between server restarts. This file is the security-correct
- * skeleton; the missing piece is purely the storage layer.
+ * Real password hashing (bcrypt) + JWT issuance + login brute-force protection
+ * + real Supabase persistence (see backend/services/db.js).
  */
 
 const express = require("express");
@@ -68,19 +61,8 @@ function isValidPassword(password) {
   return typeof password === "string" && password.length >= 8;
 }
 
-/* ── DB stubs — replace with real Supabase/PostgreSQL queries ──── */
-async function findUserByEmail(email) {
-  // SELECT * FROM users WHERE email = $1
-  // TODO: wire to real database
-  return null; // stub — always "not found" until DB is connected
-}
-
-async function createUser({ email, passwordHash, name }) {
-  // INSERT INTO users (email, password_hash, name, plan, created_at)
-  // VALUES ($1, $2, $3, 'free', NOW()) RETURNING id, email, plan
-  // TODO: wire to real database
-  return { id: "stub-id", email, plan: "free", name };
-}
+/* ── Real database functions — see backend/services/db.js ──── */
+const { findUserByEmail, createUser } = require("../services/db");
 
 /* ── Token signing ─────────────────────────────────── */
 function signToken(user, deviceId) {
