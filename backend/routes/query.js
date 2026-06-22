@@ -106,4 +106,62 @@ router.get("/subjects", requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/report-issue
+ * Student reports a question that didn't match the indexed syllabus —
+ * usually because their actual syllabus changed. Logged for manual review,
+ * never auto-merged (same philosophy as syllabusDiffChecker.js).
+ */
+router.post("/report-issue", requireAuth, async (req, res) => {
+  try {
+    const { university, branch, semester, query, note } = req.body;
+
+    if (!query || typeof query !== "string") {
+      return res.status(400).json({ error: "Missing the question you want to report." });
+    }
+
+    const { logSyllabusReport } = require("../services/db");
+    await logSyllabusReport({
+      userId: req.user.id,
+      university,
+      branch,
+      semester,
+      query: query.trim().slice(0, 500),
+      note: note ? note.trim().slice(0, 1000) : null
+    });
+
+    return res.json({ success: true, message: "Thanks — we'll review this and update the syllabus data if needed." });
+  } catch (err) {
+    console.error("[REPORT ERROR]", err.message);
+    return res.status(500).json({ error: "Could not submit your report. Please try again." });
+  }
+});
+
+/**
+ * GET /api/account
+ * Returns the logged-in user's account info for the account page.
+ */
+router.get("/account", requireAuth, async (req, res) => {
+  try {
+    const { findUserByEmail, getActiveDevices } = require("../services/db");
+    const user = await findUserByEmail(req.user.email);
+
+    if (!user) {
+      return res.status(404).json({ error: "Account not found." });
+    }
+
+    const devices = await getActiveDevices(user.id);
+
+    return res.json({
+      email: user.email,
+      name: user.name,
+      plan: user.plan,
+      devices: devices.map(d => ({ lastSeen: d.lastSeen }))
+    });
+  } catch (err) {
+    console.error("[ACCOUNT ERROR]", err.message);
+    return res.status(500).json({ error: "Could not load account info." });
+  }
+});
+
 module.exports = router;

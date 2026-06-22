@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNIEX AI — Account</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05091A;--bg-s:#0B1121;--bg-c:#0F1728;--bg-h:#141F35;
+  --indigo:#6366F1;--ind-d:rgba(99,102,241,.12);--ind-b:rgba(99,102,241,.22);
+  --cyan:#22D3EE;--text:#EEF2FF;--text-2:#94A3B8;--text-3:#3D4E6B;
+  --border:rgba(255,255,255,.07);
+  --ff-d:'Space Grotesk',sans-serif;--ff-b:'Inter',sans-serif;--ff-m:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--ff-b);
+  min-height:100vh;
+}
+.topbar{
+  height:52px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;background:var(--bg-s);border-bottom:1px solid var(--border);
+}
+.logo{font-family:var(--ff-d);font-size:.95rem;font-weight:700;letter-spacing:.08em;}
+.logo em{font-style:normal;color:var(--indigo);}
+.back-link{
+  font-size:.8rem;color:var(--text-2);text-decoration:none;cursor:pointer;
+}
+.back-link:hover{color:var(--text);}
+
+.wrap{max-width:560px;margin:0 auto;padding:48px 24px;}
+.card{
+  background:var(--bg-c);border:1px solid var(--border);border-radius:14px;
+  padding:28px 26px;margin-bottom:18px;
+}
+.card-title{
+  font-family:var(--ff-d);font-size:1rem;font-weight:600;margin-bottom:18px;
+}
+.profile-head{display:flex;align-items:center;gap:14px;margin-bottom:6px;}
+.avatar-big{
+  width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,var(--indigo),var(--cyan));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--ff-d);font-size:1.3rem;font-weight:700;flex-shrink:0;
+}
+.profile-name{font-family:var(--ff-d);font-size:1.05rem;font-weight:600;}
+.profile-email{font-size:.8rem;color:var(--text-2);margin-top:2px;}
+
+.row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 0;border-bottom:1px solid var(--border);
+}
+.row:last-child{border-bottom:none;}
+.row-label{font-size:.84rem;color:var(--text-2);}
+.row-value{font-size:.84rem;font-family:var(--ff-m);}
+.plan-tag{
+  padding:3px 10px;border-radius:100px;
+  background:var(--ind-d);border:1px solid var(--ind-b);
+  font-family:var(--ff-m);font-size:.68rem;color:#A5B4FC;
+  text-transform:uppercase;
+}
+.upgrade-btn{
+  display:block;width:100%;text-align:center;padding:11px;
+  border-radius:8px;background:var(--indigo);color:#fff;border:none;
+  font-size:.85rem;font-weight:500;cursor:pointer;margin-top:14px;
+  text-decoration:none;
+}
+.upgrade-btn:hover{background:#4F46E5;}
+
+.device-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 0;font-size:.8rem;color:var(--text-2);
+  border-bottom:1px solid var(--border);
+}
+.device-item:last-child{border-bottom:none;}
+
+.danger-btn{
+  width:100%;padding:11px;border-radius:8px;
+  background:transparent;border:1px solid rgba(239,68,68,.3);
+  color:#FCA5A5;font-size:.85rem;cursor:pointer;transition:all .2s;
+}
+.danger-btn:hover{background:rgba(239,68,68,.08);}
+
+.loading{text-align:center;color:var(--text-3);padding:40px;font-size:.85rem;}
+.error-box{
+  padding:14px;border-radius:8px;background:rgba(239,68,68,.08);
+  border:1px solid rgba(239,68,68,.2);color:#FCA5A5;font-size:.82rem;
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">UNIEX <em>AI</em></div>
+  <a class="back-link" href="app.html">← Back to app</a>
+</div>
+
+<div class="wrap" id="content">
+  <div class="loading">Loading your account…</div>
+</div>
+
+<script>
+const CONFIG = {
+  API_BASE_URL: "https://uniex-ai.onrender.com",
+  DEMO_MODE: false
+};
+
+function timeAgo(iso) {
+  if (!iso) return "Unknown";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+async function loadAccount() {
+  const token = localStorage.getItem('uniexai_token');
+  const content = document.getElementById('content');
+
+  if (!token) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  if (CONFIG.DEMO_MODE) {
+    render({ email: 'demo@uniexai.in', name: 'Demo Student', plan: 'free', devices: [] });
+    return;
+  }
+
+  try {
+    const res = await fetch(`${CONFIG.API_BASE_URL}/api/account`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (res.status === 401) {
+      localStorage.removeItem('uniexai_token');
+      window.location.href = 'login.html';
+      return;
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      content.innerHTML = `<div class="error-box">${data.error || 'Could not load account.'}</div>`;
+      return;
+    }
+    render(data);
+  } catch (err) {
+    content.innerHTML = `<div class="error-box">Could not reach the server. Please try again.</div>`;
+  }
+}
+
+function render(data) {
+  const initial = (data.name || data.email || '?').charAt(0).toUpperCase();
+  const devicesHtml = (data.devices && data.devices.length)
+    ? data.devices.map(d => `<div class="device-item"><span>Device</span><span>${timeAgo(d.lastSeen)}</span></div>`).join('')
+    : `<div class="device-item"><span style="color:var(--text-3)">No device activity recorded yet</span></div>`;
+
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="profile-head">
+        <div class="avatar-big">${initial}</div>
+        <div>
+          <div class="profile-name">${data.name || 'Student'}</div>
+          <div class="profile-email">${data.email}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Plan</div>
+      <div class="row">
+        <span class="row-label">Current plan</span>
+        <span class="plan-tag">${data.plan}</span>
+      </div>
+      ${data.plan === 'free' ? `<a href="app.html" class="upgrade-btn">Upgrade to Premium →</a>` : ''}
+    </div>
+
+    <div class="card">
+      <div class="card-title">Devices (max 2 active)</div>
+      ${devicesHtml}
+    </div>
+
+    <div class="card">
+      <div class="card-title">Found an issue?</div>
+      <p style="font-size:.82rem;color:var(--text-2);line-height:1.6;margin-bottom:14px;">
+        If the AI told you a question was "out of syllabus" but it's actually
+        covered in your course — report it from the chat directly under that
+        message, and we'll review and update our data.
+      </p>
+    </div>
+
+    <button class="danger-btn" id="logoutBtn">Log out</button>
+  `;
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('uniexai_token');
+    window.location.href = 'login.html';
+  });
+}
+
+loadAccount();
+</script>
+</body>
+</html>

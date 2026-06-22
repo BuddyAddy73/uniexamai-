@@ -50,13 +50,19 @@ input:focus{border-color:var(--ind-b);}
   font-size:.875rem;font-weight:500;cursor:pointer;transition:all .2s;
 }
 .submit:hover{background:#4F46E5;box-shadow:0 6px 24px rgba(99,102,241,.4);}
+.submit:disabled{opacity:.5;cursor:not-allowed;}
+.submit-alt{
+  background:var(--bg-c);border:1px solid var(--border);color:var(--text-3);
+  cursor:not-allowed;
+}
+.submit-alt:hover{background:var(--bg-c);box-shadow:none;}
 .divider{
   display:flex;align-items:center;gap:10px;margin:20px 0;
   font-size:.72rem;color:var(--text-3);
 }
 .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
 .foot{text-align:center;font-size:.8rem;color:var(--text-2);margin-top:18px;}
-.foot a{color:var(--indigo);text-decoration:none;}
+.foot a{color:var(--indigo);text-decoration:none;cursor:pointer;}
 .note{
   margin-top:20px;padding:10px 12px;border-radius:8px;
   background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);
@@ -67,46 +73,59 @@ input:focus{border-color:var(--ind-b);}
   background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
   font-size:.78rem;color:#FCA5A5;display:none;
 }
+.success-msg{
+  margin-top:14px;padding:10px 12px;border-radius:8px;
+  background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);
+  font-size:.78rem;color:#86EFAC;display:none;
+}
+#nameField{display:none;}
 </style>
 </head>
 <body>
 <div class="card">
   <div class="logo">UNIEX <em>AI</em></div>
-  <h1>Welcome back</h1>
-  <p class="sub">Log in to continue your exam prep</p>
+  <h1 id="formTitle">Welcome back</h1>
+  <p class="sub" id="formSub">Log in to continue your exam prep</p>
 
+  <div class="field" id="nameField">
+    <label>Name</label>
+    <input type="text" id="name" placeholder="Your name">
+  </div>
   <div class="field">
     <label>Email</label>
     <input type="email" id="email" placeholder="you@college.edu">
   </div>
   <div class="field">
     <label>Password</label>
-    <input type="password" id="password" placeholder="••••••••">
+    <input type="password" id="password" placeholder="At least 8 characters">
   </div>
-  <button class="submit" id="loginBtn">Log in →</button>
+  <button class="submit" id="submitBtn">Log in →</button>
   <div class="error-msg" id="errorMsg"></div>
+  <div class="success-msg" id="successMsg"></div>
 
   <div class="divider">OR</div>
-  <button class="submit" style="background:var(--bg-c);border:1px solid var(--border);color:var(--text-2);" onclick="window.location.href='app.html'">Continue with Google</button>
+  <button class="submit submit-alt" title="Coming soon — not built yet">
+    Continue with Google (coming soon)
+  </button>
 
-  <p class="foot">New here? <a href="app.html">Create a free account</a></p>
+  <p class="foot" id="toggleText">New here? <a id="toggleLink">Create a free account</a></p>
 
   <div class="note" id="modeNote"></div>
 </div>
 
 <script>
-// Same CONFIG pattern as app.html — flip DEMO_MODE once the backend is live.
+// Same CONFIG pattern as app.html — both must stay in sync.
 const CONFIG = {
   API_BASE_URL: "https://uniex-ai.onrender.com",
   DEMO_MODE: false
 };
 
 document.getElementById('modeNote').textContent = CONFIG.DEMO_MODE
-  ? "⚠️ Demo mode — auth backend not connected yet. Logging in drops you into the app directly. Real authentication activates once CONFIG.DEMO_MODE is set to false."
-  : "";
+  ? "⚠️ Demo mode — auth backend not connected. Logging in drops you into the app directly."
+  : "⚠️ UniExamAI is in active development — accounts and features may have occasional bugs. Thanks for testing it early.";
 
-// Simple device fingerprint — combines a few stable browser signals.
-// Production should use a more robust fingerprinting library (e.g. FingerprintJS).
+let mode = 'login'; // or 'signup'
+
 function getDeviceId() {
   const raw = [
     navigator.userAgent,
@@ -122,18 +141,51 @@ function getDeviceId() {
 }
 
 function showError(msg) {
+  document.getElementById('successMsg').style.display = 'none';
   const el = document.getElementById('errorMsg');
   el.textContent = msg;
   el.style.display = 'block';
 }
 
-async function handleLogin() {
+function showSuccess(msg) {
+  document.getElementById('errorMsg').style.display = 'none';
+  const el = document.getElementById('successMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function setMode(newMode) {
+  mode = newMode;
+  document.getElementById('errorMsg').style.display = 'none';
+  document.getElementById('successMsg').style.display = 'none';
+
+  if (mode === 'signup') {
+    document.getElementById('formTitle').textContent = 'Create your account';
+    document.getElementById('formSub').textContent = 'Free to start — upgrade anytime';
+    document.getElementById('nameField').style.display = 'block';
+    document.getElementById('submitBtn').textContent = 'Create account →';
+    document.getElementById('toggleText').innerHTML = 'Already have an account? <a id="toggleLink">Log in</a>';
+  } else {
+    document.getElementById('formTitle').textContent = 'Welcome back';
+    document.getElementById('formSub').textContent = 'Log in to continue your exam prep';
+    document.getElementById('nameField').style.display = 'none';
+    document.getElementById('submitBtn').textContent = 'Log in →';
+    document.getElementById('toggleText').innerHTML = 'New here? <a id="toggleLink">Create a free account</a>';
+  }
+  document.getElementById('toggleLink').addEventListener('click', () => setMode(mode === 'login' ? 'signup' : 'login'));
+}
+
+async function handleSubmit() {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
-  document.getElementById('errorMsg').style.display = 'none';
+  const name = document.getElementById('name').value.trim();
 
   if (!email || !password) {
     showError('Please enter both email and password.');
+    return;
+  }
+  if (mode === 'signup' && password.length < 8) {
+    showError('Password must be at least 8 characters.');
     return;
   }
 
@@ -142,33 +194,53 @@ async function handleLogin() {
     return;
   }
 
+  const endpoint = mode === 'signup' ? '/api/auth/register' : '/api/auth/login';
+  const body = mode === 'signup'
+    ? { email, password, name, deviceId: getDeviceId() }
+    : { email, password, deviceId: getDeviceId() };
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = mode === 'signup' ? 'Creating account…' : 'Logging in…';
+
   try {
-    const res = await fetch(`${CONFIG.API_BASE_URL}/api/auth/login`, {
+    const res = await fetch(`${CONFIG.API_BASE_URL}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, deviceId: getDeviceId() })
+      body: JSON.stringify(body)
     });
     const data = await res.json();
 
     if (!res.ok) {
-      showError(data.error || 'Login failed.');
+      showError(data.error || (mode === 'signup' ? 'Could not create account.' : 'Login failed.'));
+      btn.disabled = false;
+      btn.textContent = mode === 'signup' ? 'Create account →' : 'Log in →';
       return;
     }
 
-    // NOTE: sessionStorage is used here for simplicity. For stronger production
-    // security against XSS token theft, issue the JWT as an httpOnly secure
-    // cookie from the backend instead, so client-side JS can never read it.
-    sessionStorage.setItem('uniexai_token', data.token);
-    window.location.href = 'app.html';
+    // NOTE: localStorage persists across browser restarts — this is what
+    // keeps you logged in. For stronger production security against XSS
+    // token theft, the backend should eventually issue this as an httpOnly
+    // secure cookie instead, so client-side JS can never read it directly.
+    localStorage.setItem('uniexai_token', data.token);
+
+    if (mode === 'signup') {
+      showSuccess('Account created! Redirecting…');
+    }
+    setTimeout(() => { window.location.href = 'app.html'; }, mode === 'signup' ? 800 : 0);
   } catch (err) {
     showError('Could not reach the server. Please try again.');
+    btn.disabled = false;
+    btn.textContent = mode === 'signup' ? 'Create account →' : 'Log in →';
   }
 }
 
-document.getElementById('loginBtn').addEventListener('click', handleLogin);
+document.getElementById('submitBtn').addEventListener('click', handleSubmit);
 document.getElementById('password').addEventListener('keydown', e => {
-  if (e.key === 'Enter') handleLogin();
+  if (e.key === 'Enter') handleSubmit();
 });
+
+setMode('login');
 </script>
 </body>
 </html>

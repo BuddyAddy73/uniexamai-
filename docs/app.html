@@ -451,7 +451,7 @@ body{
   </div>
   <div class="top-right">
     <span class="plan-badge" id="planBadge">Free · 10/10 left</span>
-    <div class="avatar">A</div>
+    <div class="avatar" onclick="window.location.href='account.html'" title="Account settings">A</div>
   </div>
 </div>
 
@@ -463,8 +463,8 @@ body{
     <div class="sb-section">
       <div class="sb-label">University Affiliation</div>
       <select class="sb-select" id="selAffil">
-        <option value="RGPV">RGPV — Bhopal</option>
-        <option value="DAVV">DAVV — Indore</option>
+        <option value="RGPV">RGPV</option>
+        <option value="DAVV">DAVV</option>
       </select>
     </div>
     <div class="sb-section">
@@ -637,8 +637,10 @@ body{
    CONFIG — single place to flip from demo to live backend
    ════════════════════════════════════════════════════ */
 const CONFIG = {
-  API_BASE_URL: "https://uniex-ai.onrender.com",
-  DEMO_MODE: false
+  // ⚠️ Replace with your real deployed backend URL once live (e.g. Render.com).
+  // Never point this at localhost in production — it only works on your own machine.
+  API_BASE_URL: "https://api.uniexai.in", // placeholder — update after backend deploy
+  DEMO_MODE: true // set to false once CONFIG.API_BASE_URL is live and reachable
 };
 
 /* ── REAL COLLEGE LISTS (researched, not placeholders) ──── */
@@ -873,7 +875,7 @@ function getResponse(q){
  * CONFIG.API_BASE_URL points to it (never localhost in production).
  */
 async function fetchRealAnswer(query, university, branch, semester) {
-  const token = sessionStorage.getItem('uniexai_token'); // see login.html — httpOnly cookie recommended for production instead
+  const token = localStorage.getItem('uniexai_token'); // persists across browser restarts
 
   const res = await fetch(`${CONFIG.API_BASE_URL}/api/query`, {
     method: 'POST',
@@ -954,7 +956,7 @@ async function sendQuery(){
     if(lbl) lbl.textContent=states[si];
   },600);
 
-  let answerHtml, sourceText, showWolfram = false;
+  let answerHtml, sourceText, showWolfram = false, outOfSyllabus = false;
 
   try {
     if (CONFIG.DEMO_MODE) {
@@ -966,7 +968,10 @@ async function sendQuery(){
     } else {
       const data = await fetchRealAnswer(q, university, branch, semester);
       answerHtml = data.answer;
-      sourceText = data.sources?.map(s => `${s.university} · ${s.branch} · Sem ${s.semester} · ${s.subject}`).join(' | ') || 'No source matched';
+      outOfSyllabus = !!data.outOfSyllabus;
+      sourceText = outOfSyllabus
+        ? null // the disclaimer line is already inside answerHtml itself
+        : (data.sources?.map(s => `${s.university} · ${s.branch} · Sem ${s.semester} · ${s.subject}`).join(' | ') || 'No source matched');
     }
   } catch (err) {
     answerHtml = `⚠️ ${err.message}`;
@@ -976,6 +981,7 @@ async function sendQuery(){
   clearInterval(stInterval);
   feed.removeChild(thinkRow);
 
+  const reportId = 'report_' + Date.now();
   const aiRow=document.createElement('div');
   aiRow.className='msg-row ai fade-in';
   aiRow.innerHTML=`
@@ -984,6 +990,12 @@ async function sendQuery(){
       <p>${answerHtml}</p>
       ${sourceText ? `<div class="src-cite">📄 Source: ${sourceText}</div>` : ''}
       ${showWolfram?`<a class="wolfram-link" href="https://www.wolframalpha.com" target="_blank">🔢 Verify numerically on WolframAlpha</a>`:''}
+      ${outOfSyllabus ? `
+        <div id="${reportId}" style="margin-top:10px;">
+          <button class="sug" style="font-size:.72rem;padding:5px 11px;" onclick="submitReport('${reportId}', ${JSON.stringify(q).replace(/"/g,'&quot;')}, '${university}', '${branch}', '${semester}')">
+            🚩 Report — my syllabus actually covers this
+          </button>
+        </div>` : ''}
     </div>`;
   feed.appendChild(aiRow);
   feed.scrollTop=feed.scrollHeight;
@@ -993,6 +1005,37 @@ async function sendQuery(){
     updateUsageDisplay();
   }
   // In live mode, updateUsageDisplay() already ran inside fetchRealAnswer() from server headers
+}
+
+/* ── REPORT SUBMISSION ───────────────────────────── */
+async function submitReport(containerId, queryText, university, branch, semester) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = `<span style="font-size:.72rem;color:var(--text-3);">Submitting…</span>`;
+
+  if (CONFIG.DEMO_MODE) {
+    setTimeout(() => {
+      container.innerHTML = `<span style="font-size:.72rem;color:var(--cyan);">✓ Thanks — logged (demo mode, not actually saved)</span>`;
+    }, 600);
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('uniexai_token');
+    const res = await fetch(`${CONFIG.API_BASE_URL}/api/report-issue`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ query: queryText, university, branch, semester })
+    });
+    const data = await res.json();
+    container.innerHTML = res.ok
+      ? `<span style="font-size:.72rem;color:var(--cyan);">✓ ${data.message}</span>`
+      : `<span style="font-size:.72rem;color:#FCA5A5;">${data.error || 'Could not submit report.'}</span>`;
+  } catch (err) {
+    container.innerHTML = `<span style="font-size:.72rem;color:#FCA5A5;">Could not reach the server.</span>`;
+  }
 }
 
 /* ── PRACTICE GENERATOR ──────────────────────────── */

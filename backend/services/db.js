@@ -1,114 +1,167 @@
 /**
- * UniExamAI — Database Service (Supabase)
- *
- * This file replaces every stub function that previously lived inline in
- * auth-routes.js and middleware/auth.js. Once this is wired in, accounts
- * actually persist — no more re-registering after every browser restart.
- *
- * SECURITY NOTE: This uses the Supabase *service role* key, which bypasses
- * Row Level Security by design. That's correct here because only this
- * backend talks to Supabase — never the frontend directly. This key must
- * NEVER be sent to the browser or used in any frontend code.
+ * UniExamAI — Query Route
+ * POST /api/query — Main student query endpoint
+ * POST /api/practice — Generate practice questions
  */
 
-const { createClient } = require("@supabase/supabase-js");
+const express = require("express");
+const router = express.Router();
+const { processQuery } = require("../services/ragService");
+const { requireAuth, requireActiveSubscription } = require("../middleware/auth");
+const { queryRateLimit } = require("../middleware/rateLimit");
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+/**
+ * POST /api/query
+ * Main AI explanation endpoint
+ * Body: { query, university, branch, semester }
+ */
+router.post("/query", requireAuth, queryRateLimit, async (req, res) => {
+  try {
+    const { query, university, branch, semester } = req.body;
 
-/* ── User functions ──────────────────────────────────── */
+    // Validate required fields
+    if (!query || !university || !branch || !semester) {
+      return res.status(400).json({
+        error: "Missing required fields: query, university, branch, semester"
+      });
+    }
 
-async function findUserByEmail(email) {
-  const { data, error } = await supabase
-    .from("users")
-    .select("id, email, password_hash, name, plan")
-    .eq("email", email)
-    .maybeSingle();
+    // Sanitize inputs
+    const sanitized = {
+      query: query.trim().slice(0, 500), // Max 500 chars per query
+      university: university.trim().toUpperCase(),
+      branch: branch.trim().toUpperCase(),
+      semester: String(semester).trim(),
+      mode: "explain"
+    };
 
-  if (error) {
-    console.error("[DB ERROR] findUserByEmail:", error.message);
-    throw new Error("Database error while looking up user.");
+    const result = await processQuery(sanitized);
+
+    // Log query for analytics (no PII stored)
+    console.log(`[QUERY] ${sanitized.university}|${sanitized.branch}|Sem${sanitized.semester} — ${sanitized.query.slice(0, 50)}`);
+
+    return res.json(result);
+  } catch (err) {
+    console.error("[QUERY ERROR]", err.message);
+    return res.status(500).json({ error: "Query processing failed. Please try again." });
   }
+});
 
-  if (!data) return null;
+/**
+ * POST /api/practice
+ * Generate practice questions — Premium only
+ * Body: { topic, university, branch, semester, difficulty }
+ */
+router.post("/practice", requireAuth, requireActiveSubscription, queryRateLimit, async (req, res) => {
+  try {
+    const { topic, university, branch, semester, difficulty = "medium" } = req.body;
 
-  // normalize to the shape auth-routes.js expects (passwordHash, camelCase)
-  return {
-    id: data.id,
-    email: data.email,
-    passwordHash: data.password_hash,
-    name: data.name,
-    plan: data.plan
-  };
-}
+    if (!topic || !university || !branch || !semester) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
-async function createUser({ email, passwordHash, name }) {
-  const { data, error } = await supabase
-    .from("users")
-    .insert({ email, password_hash: passwordHash, name: name || null, plan: "free" })
-    .select("id, email, name, plan")
-    .single();
+    const validDifficulties = ["easy", "medium", "hard"];
+    if (!validDifficulties.includes(difficulty)) {
+      return res.status(400).json({ error: "Invalid difficulty. Use: easy, medium, hard" });
+    }
 
-  if (error) {
-    console.error("[DB ERROR] createUser:", error.message);
-    throw new Error("Database error while creating account.");
+    const result = await processQuery({
+      query: topic.trim().slice(0, 300),
+      university: university.trim().toUpperCase(),
+      branch: branch.trim().toUpperCase(),
+      semester: String(semester).trim(),
+      mode: "practice",
+      difficulty
+    });
+
+    return res.json(result);
+  } catch (err) {
+    console.error("[PRACTICE ERROR]", err.message);
+    return res.status(500).json({ error: "Practice question generation failed." });
   }
+});
 
-  return data;
-}
+/**
+ * GET /api/subjects
+ * Get available subjects for a university/branch/semester
+ * Used to populate dropdowns in frontend
+ */
+router.get("/subjects", requireAuth, async (req, res) => {
+  try {
+    const { university, branch, semester } = req.query;
+    const { searchDocuments } = require("../services/ragService");
 
-/* ── Device functions (2-device limit enforcement) ──── */
+    const docs = searchDocuments({
+      query: "syllabus",
+      university,
+      branch,
+      semester,
+      topK: 20
+    });
 
-async function getActiveDevices(userId) {
-  const { data, error } = await supabase
-    .from("user_devices")
-    .select("id, device_id, registered_at, last_seen")
-    .eq("user_id", userId)
-    .order("last_seen", { ascending: false });
-
-  if (error) {
-    console.error("[DB ERROR] getActiveDevices:", error.message);
-    return []; // fail open rather than locking someone out on a DB hiccup
+    const subjects = [...new Set(docs.map(d => d.subject))];
+    return res.json({ subjects, count: subjects.length });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch subjects." });
   }
+});
 
-  return data.map(d => ({ deviceId: d.device_id, lastSeen: d.last_seen }));
-}
+/**
+ * POST /api/report-issue
+ * Student reports a question that didn't match the indexed syllabus —
+ * usually because their actual syllabus changed. Logged for manual review,
+ * never auto-merged (same philosophy as syllabusDiffChecker.js).
+ */
+router.post("/report-issue", requireAuth, async (req, res) => {
+  try {
+    const { university, branch, semester, query, note } = req.body;
 
-async function registerDevice(userId, deviceId) {
-  const { error } = await supabase
-    .from("user_devices")
-    .upsert(
-      { user_id: userId, device_id: deviceId, last_seen: new Date().toISOString() },
-      { onConflict: "user_id,device_id" }
-    );
+    if (!query || typeof query !== "string") {
+      return res.status(400).json({ error: "Missing the question you want to report." });
+    }
 
-  if (error) {
-    console.error("[DB ERROR] registerDevice:", error.message);
+    const { logSyllabusReport } = require("../services/db");
+    await logSyllabusReport({
+      userId: req.user.id,
+      university,
+      branch,
+      semester,
+      query: query.trim().slice(0, 500),
+      note: note ? note.trim().slice(0, 1000) : null
+    });
+
+    return res.json({ success: true, message: "Thanks — we'll review this and update the syllabus data if needed." });
+  } catch (err) {
+    console.error("[REPORT ERROR]", err.message);
+    return res.status(500).json({ error: "Could not submit your report. Please try again." });
   }
-}
+});
 
-async function removeOldestDevice(userId) {
-  const devices = await getActiveDevices(userId);
-  if (devices.length === 0) return;
+/**
+ * GET /api/account
+ * Returns the logged-in user's account info for the account page.
+ */
+router.get("/account", requireAuth, async (req, res) => {
+  try {
+    const { findUserByEmail, getActiveDevices } = require("../services/db");
+    const user = await findUserByEmail(req.user.email);
 
-  const oldest = devices[devices.length - 1]; // last_seen ascending at the end
-  const { error } = await supabase
-    .from("user_devices")
-    .delete()
-    .eq("user_id", userId)
-    .eq("device_id", oldest.deviceId);
+    if (!user) {
+      return res.status(404).json({ error: "Account not found." });
+    }
 
-  if (error) {
-    console.error("[DB ERROR] removeOldestDevice:", error.message);
+    const devices = await getActiveDevices(user.id);
+
+    return res.json({
+      email: user.email,
+      name: user.name,
+      plan: user.plan,
+      devices: devices.map(d => ({ lastSeen: d.lastSeen }))
+    });
+  } catch (err) {
+    console.error("[ACCOUNT ERROR]", err.message);
+    return res.status(500).json({ error: "Could not load account info." });
   }
-}
+});
 
-module.exports = {
-  findUserByEmail,
-  createUser,
-  getActiveDevices,
-  registerDevice,
-  removeOldestDevice
-};
+module.exports = router;
