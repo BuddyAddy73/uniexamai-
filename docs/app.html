@@ -473,7 +473,9 @@ body{
     </div>
     <div class="sb-section">
       <div class="sb-label">Branch</div>
-      <select class="sb-select" id="selBranch"></select>
+      <select class="sb-select" id="selBranch">
+        <option value="">— Select branch —</option>
+      </select>
     </div>
     <div class="sb-section">
       <div class="sb-label">Semester</div>
@@ -724,27 +726,50 @@ function populateBranches() {
   const affil = elAffil.value;
   const branches = BRANCHES_BY_AFFIL[affil];
   const current = elBranch.value;
-  elBranch.innerHTML = branches.map(b => `<option>${b}</option>`).join('');
-  // keep previous selection if still valid for this affiliation
-  if (branches.includes(current)) elBranch.value = current;
+  elBranch.innerHTML = `<option value="">— Select branch —</option>` +
+    branches.map(b => `<option>${b}</option>`).join('');
+  // keep previous selection if still valid for this affiliation, else reset to placeholder
+  elBranch.value = branches.includes(current) ? current : "";
 }
 
 function populateSubjects() {
   const affil = elAffil.value;
   const branch = elBranch.value;
   const sem = elSem.value;
-  const subjects = SUBJECT_MAP[affil]?.[branch]?.[sem] || [];
 
-  if (subjects.length === 0) {
-    elChips.innerHTML = `<div class="chip-empty">No subject-level breakdown indexed yet for ${affil} · ${branch} · Sem ${sem}. The full semester scheme PDF is still searchable — just ask in the chat below.</div>`;
+  // No branch chosen yet — show a small cross-branch recommended set instead
+  // of nothing, so the panel never looks broken/empty.
+  if (!branch) {
+    const recommended = [
+      ...(SUBJECT_MAP.RGPV?.CSE?.["3"] || []),
+      ...(SUBJECT_MAP.DAVV?.CSE?.["4"] || []).slice(0, 3)
+    ].slice(0, 6);
+
+    elChips.innerHTML = `<div class="chip-empty" style="margin-bottom:8px;">Select a branch to see your full subject list. Showing popular subjects for now:</div>` +
+      recommended.map(s => `<div class="chip">${s}</div>`).join('');
+    bindChipClicks();
     return;
   }
 
-  elChips.innerHTML = subjects
-    .map((s, i) => `<div class="chip${i === 0 ? ' active' : ''}">${s}</div>`)
-    .join('');
+  // Branch selected — show every subject across ALL semesters for this
+  // branch, not just the currently selected one, so students can browse
+  // ahead or look back without changing the semester dropdown.
+  const branchData = SUBJECT_MAP[affil]?.[branch] || {};
+  const allSubjectsThisBranch = [...new Set(Object.values(branchData).flat())].sort();
+  const currentSemSubjects = branchData[sem] || [];
 
-  // re-bind click handlers on freshly created chips
+  if (allSubjectsThisBranch.length === 0) {
+    elChips.innerHTML = `<div class="chip-empty">No subject-level breakdown indexed yet for ${affil} · ${branch}. The full semester scheme PDF is still searchable — just ask in the chat below.</div>`;
+    return;
+  }
+
+  elChips.innerHTML = allSubjectsThisBranch
+    .map(s => `<div class="chip${currentSemSubjects.includes(s) ? ' active' : ''}">${s}${currentSemSubjects.includes(s) ? '' : ' <span style="opacity:.5;font-size:.65em;">(other sem)</span>'}</div>`)
+    .join('');
+  bindChipClicks();
+}
+
+function bindChipClicks() {
   elChips.querySelectorAll('.chip').forEach(c => {
     c.addEventListener('click', () => {
       elChips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
