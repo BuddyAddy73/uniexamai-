@@ -124,7 +124,6 @@ async function logSyllabusReport({ userId, university, branch, semester, query, 
     throw new Error("Could not save your report. Please try again.");
   }
 }
-
 module.exports = {
   findUserByEmail,
   createUser,
