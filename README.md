@@ -72,8 +72,8 @@ curl http://localhost:4000/health
 
 | University | Branches | Semesters |
 |---|---|---|
-| RGPV (Bhopal) | CSE, ECE | 1–8 |
-| DAVV (Indore) | CSE, ECE, IT | 1–8 |
+| RGPV  | CSE, ECE | 1–8 |
+| DAVV  | CSE, ECE, IT | 1–8 |
 
 More universities and branches are added as the dataset grows.
 
