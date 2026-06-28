@@ -604,27 +604,15 @@ body{
         <div class="prac-config">
           <div class="prac-config-title">Generate Practice Questions</div>
           <div class="prac-row">
-            <select class="prac-sel">
-              <option>Data Structures</option>
-              <option>Discrete Mathematics</option>
-              <option>Digital Circuits</option>
-              <option>OOP with C++</option>
+            <select class="prac-sel" id="pracSubject"></select>
+            <select class="prac-sel" id="pracDifficulty">
+              <option value="easy">2-mark (Easy)</option>
+              <option value="medium" selected>5-mark (Medium)</option>
+              <option value="hard">10-mark (Hard)</option>
             </select>
-            <select class="prac-sel">
-              <option>Unit 1</option>
-              <option>Unit 2</option>
-              <option>Unit 3</option>
-              <option>Unit 4</option>
-              <option>Unit 5</option>
-            </select>
-            <select class="prac-sel">
-              <option>2-mark (Easy)</option>
-              <option>5-mark (Medium)</option>
-              <option>10-mark (Hard)</option>
-              <option>Mixed</option>
-            </select>
-            <button class="gen-btn" onclick="generatePractice()">⚡ Generate 5 Questions</button>
+            <button class="gen-btn" id="pracGenBtn" onclick="generatePractice()">⚡ Generate 5 Questions</button>
           </div>
+          <div id="pracError" style="display:none;font-size:.78rem;color:#FCA5A5;margin-top:10px;"></div>
         </div>
 
         <div id="practiceOut"></div>
@@ -652,13 +640,12 @@ const COLLEGES_BY_AFFIL = {
     "Patel College of Science & Technology (PCST)",
     "Prestige Institute of Engineering Mgmt. & Research",
     "Shri Vaishnav Institute of Technology & Science",
-    "LNCT University",
+    "LNCT Indore",
     "Medi-Caps University",
     "Sushila Devi Bansal College of Technology",
     "Swami Vivekanand College of Engineering",
     "Oriental University, Indore",
-    "SAGE University, Indore",
-    "Any other RGPV-affiliated college"
+    "SAGE University, Indore"
   ],
   DAVV: [
     "IET-DAVV (Institute of Engineering & Technology)",
@@ -777,15 +764,29 @@ function bindChipClicks() {
   });
 }
 
+function populatePracticeSubjects() {
+  const sel = document.getElementById('pracSubject');
+  if (!sel) return;
+  const affil = elAffil.value;
+  const branch = elBranch.value;
+  const sem = elSem.value;
+  const subjects = SUBJECT_MAP[affil]?.[branch]?.[sem] || [];
+
+  sel.innerHTML = subjects.length
+    ? subjects.map(s => `<option>${s}</option>`).join('')
+    : `<option value="">No subjects indexed for this selection yet</option>`;
+}
+
 function refreshAll() {
   populateColleges();
   populateBranches();
   populateSubjects();
+  populatePracticeSubjects();
 }
 
 elAffil.addEventListener('change', refreshAll);
-elBranch.addEventListener('change', populateSubjects);
-elSem.addEventListener('change', populateSubjects);
+elBranch.addEventListener('change', () => { populateSubjects(); populatePracticeSubjects(); });
+elSem.addEventListener('change', () => { populateSubjects(); populatePracticeSubjects(); });
 
 // initial load
 refreshAll();
@@ -832,8 +833,16 @@ inp.addEventListener('keydown',e=>{
    already returns (see backend/middleware/rateLimit.js). */
 let dailyUsed = 0;
 let dailyLimit = 10; // free plan default — backend overrides this once connected
+let isAdminUnlimited = false;
 
 function updateUsageDisplay() {
+  if (isAdminUnlimited) {
+    document.getElementById('usageText').textContent = '∞ (admin)';
+    document.getElementById('usageFill').style.width = '100%';
+    document.getElementById('usageNote').innerHTML = 'Admin account — unlimited queries.';
+    document.getElementById('planBadge').textContent = 'Admin · Unlimited';
+    return;
+  }
   const left = Math.max(dailyLimit - dailyUsed, 0);
   const pct = Math.min((dailyUsed / dailyLimit) * 100, 100);
   document.getElementById('usageText').textContent = `${dailyUsed} / ${dailyLimit}`;
@@ -913,7 +922,10 @@ async function fetchRealAnswer(query, university, branch, semester) {
   // Sync real usage numbers from server headers
   const limitHeader = res.headers.get('X-RateLimit-Limit');
   const remainingHeader = res.headers.get('X-RateLimit-Remaining');
-  if (limitHeader && remainingHeader) {
+  if (limitHeader === 'unlimited') {
+    isAdminUnlimited = true;
+    updateUsageDisplay();
+  } else if (limitHeader && remainingHeader) {
     dailyLimit = parseInt(limitHeader, 10);
     dailyUsed = dailyLimit - parseInt(remainingHeader, 10);
     updateUsageDisplay();
@@ -1062,30 +1074,99 @@ async function submitReport(containerId, queryText, university, branch, semester
   }
 }
 
-/* ── PRACTICE GENERATOR ──────────────────────────── */
-const sampleQs=[
-  {q:'Define a Binary Search Tree. Explain the insertion algorithm with a suitable example.',marks:5,unit:'Unit 4 — Trees'},
-  {q:'Write pseudocode for in-order traversal of a binary tree. What is its time complexity?',marks:2,unit:'Unit 4 — Trees'},
-  {q:'Explain AVL tree rotations. When is a double rotation required? Give an example.',marks:10,unit:'Unit 4 — Balanced Trees'},
-  {q:'Compare and contrast B-trees and B+ trees with respect to search efficiency.',marks:5,unit:'Unit 5 — Advanced Trees'},
-  {q:'Prove that the height of an AVL tree with n nodes is O(log n).',marks:10,unit:'Unit 4 — Balanced Trees'},
-];
+/* ── PRACTICE GENERATOR — real backend call ──────── */
+async function generatePractice(){
+  const out = document.getElementById('practiceOut');
+  const errBox = document.getElementById('pracError');
+  const btn = document.getElementById('pracGenBtn');
+  const subject = document.getElementById('pracSubject').value;
+  const difficulty = document.getElementById('pracDifficulty').value;
 
-function generatePractice(){
-  const out=document.getElementById('practiceOut');
-  out.innerHTML='';
-  sampleQs.forEach((q,i)=>{
-    const card=document.createElement('div');
-    card.className='q-card fade-in';
-    card.style.animationDelay=(i*.08)+'s';
-    card.innerHTML=`
+  errBox.style.display = 'none';
+
+  if (!subject) {
+    errBox.textContent = 'No subject available for this selection — try a different semester/branch.';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  out.innerHTML = `<div style="text-align:center;color:var(--text-3);padding:30px;font-size:.85rem;">Generating fresh questions from your syllabus…</div>`;
+
+  const university = elAffil.value;
+  const branch = elBranch.value;
+  const semester = elSem.value;
+  const token = localStorage.getItem('uniexai_token');
+
+  try {
+    const res = await fetch(`${CONFIG.API_BASE_URL}/api/practice`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ topic: subject, university, branch, semester, difficulty })
+    });
+
+    const data = await res.json();
+
+    if (res.status === 403) {
+      out.innerHTML = '';
+      errBox.innerHTML = `${data.error} <a href="account.html" style="color:var(--indigo);">Upgrade →</a>`;
+      errBox.style.display = 'block';
+      return;
+    }
+    if (!res.ok) {
+      out.innerHTML = '';
+      errBox.textContent = data.error || 'Could not generate questions. Please try again.';
+      errBox.style.display = 'block';
+      return;
+    }
+
+    renderPracticeQuestions(data.answer, subject);
+  } catch (err) {
+    out.innerHTML = '';
+    errBox.textContent = 'Could not reach the server. Please try again.';
+    errBox.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Generate 5 Questions';
+  }
+}
+
+/**
+ * The backend returns practice questions as free-form AI text (not
+ * structured JSON) — split it into Q-blocks for card rendering.
+ * Falls back to showing the raw text in one card if parsing doesn't match.
+ */
+function renderPracticeQuestions(rawText, subjectLabel) {
+  const out = document.getElementById('practiceOut');
+  out.innerHTML = '';
+
+  const blocks = rawText.split(/\n(?=Q\d+\.)/g).filter(b => b.trim());
+
+  if (blocks.length === 0) {
+    out.innerHTML = `<div class="q-card fade-in"><div class="q-text">${rawText}</div></div>`;
+    return;
+  }
+
+  blocks.forEach((block, i) => {
+    const marksMatch = block.match(/(\d+)\s*marks?/i);
+    const unitMatch = block.match(/Unit\/Topic:\s*(.+)/i);
+    const questionText = block.replace(/^Q\d+\.\s*/, '').split(/Expected answer length:|Unit\/Topic:/)[0].trim();
+
+    const card = document.createElement('div');
+    card.className = 'q-card fade-in';
+    card.style.animationDelay = (i * 0.08) + 's';
+    card.innerHTML = `
       <div class="q-top">
-        <div class="q-num">${i+1}</div>
-        <span style="font-size:.78rem;color:var(--text-2)">Data Structures</span>
-        <span class="q-marks">${q.marks} marks</span>
+        <div class="q-num">${i + 1}</div>
+        <span style="font-size:.78rem;color:var(--text-2)">${subjectLabel}</span>
+        ${marksMatch ? `<span class="q-marks">${marksMatch[1]} marks</span>` : ''}
       </div>
-      <div class="q-text">${q.q}</div>
-      <div class="q-unit">${q.unit}</div>`;
+      <div class="q-text">${questionText}</div>
+      ${unitMatch ? `<div class="q-unit">${unitMatch[1].trim()}</div>` : ''}`;
     out.appendChild(card);
   });
 }

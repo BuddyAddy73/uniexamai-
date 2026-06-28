@@ -173,9 +173,9 @@ function render(data) {
       <div class="card-title">Plan</div>
       <div class="row">
         <span class="row-label">Current plan</span>
-        <span class="plan-tag">${data.plan}</span>
+        <span class="plan-tag" style="${data.isAdmin ? 'background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#F59E0B;' : ''}">${data.isAdmin ? 'Admin · Lifetime' : data.plan}</span>
       </div>
-      ${data.plan === 'free' ? `<a href="app.html" class="upgrade-btn">Upgrade to Premium →</a>` : ''}
+      ${(!data.isAdmin && data.plan === 'free') ? `<a href="app.html" class="upgrade-btn">Upgrade to Premium →</a>` : ''}
     </div>
 
     <div class="card">

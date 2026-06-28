@@ -156,6 +156,7 @@ router.get("/account", requireAuth, async (req, res) => {
       email: user.email,
       name: user.name,
       plan: user.plan,
+      isAdmin: user.isAdmin,
       devices: devices.map(d => ({ lastSeen: d.lastSeen }))
     });
   } catch (err) {

@@ -67,7 +67,7 @@ const { findUserByEmail, createUser } = require("../services/db");
 /* ── Token signing ─────────────────────────────────── */
 function signToken(user, deviceId) {
   return jwt.sign(
-    { userId: user.id, email: user.email, plan: user.plan, deviceId },
+    { userId: user.id, email: user.email, plan: user.plan, isAdmin: !!user.isAdmin, deviceId },
     JWT_SECRET,
     { expiresIn: TOKEN_EXPIRY }
   );

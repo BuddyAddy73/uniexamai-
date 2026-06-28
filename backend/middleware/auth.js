@@ -26,19 +26,23 @@ async function requireAuth(req, res, next) {
       id: decoded.userId,
       email: decoded.email,
       plan: decoded.plan,        // "free" | "premium"
+      isAdmin: !!decoded.isAdmin,
       deviceId: decoded.deviceId // fingerprint of this device
     };
 
-    // Device limit check — max 2 devices per account
-    const activeDevices = await getActiveDevices(decoded.userId);
-    const isKnownDevice = activeDevices.some(d => d.deviceId === decoded.deviceId);
+    // Device limit check — max 2 devices per account.
+    // Admin accounts skip this entirely — meant for one person (you)
+    // testing across however many devices you need.
+    if (!req.user.isAdmin) {
+      const activeDevices = await getActiveDevices(decoded.userId);
+      const isKnownDevice = activeDevices.some(d => d.deviceId === decoded.deviceId);
 
-    if (!isKnownDevice) {
-      if (activeDevices.length >= MAX_DEVICES) {
-        // Kick oldest device
-        await removeOldestDevice(decoded.userId);
+      if (!isKnownDevice) {
+        if (activeDevices.length >= MAX_DEVICES) {
+          await removeOldestDevice(decoded.userId);
+        }
+        await registerDevice(decoded.userId, decoded.deviceId);
       }
-      await registerDevice(decoded.userId, decoded.deviceId);
     }
 
     next();
@@ -51,11 +55,15 @@ async function requireAuth(req, res, next) {
 }
 
 /**
- * Check if user has active paid subscription
+ * Check if user has active paid subscription — admins always pass.
  */
 async function requireActiveSubscription(req, res, next) {
   if (!req.user) {
     return res.status(401).json({ error: "Authentication required." });
+  }
+
+  if (req.user.isAdmin) {
+    return next();
   }
 
   if (req.user.plan !== "premium") {

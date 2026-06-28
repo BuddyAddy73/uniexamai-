@@ -12,6 +12,13 @@ const LIMITS = {
 };
 
 async function queryRateLimit(req, res, next) {
+  // Admin accounts skip rate limiting entirely — for live testing.
+  if (req.user.isAdmin) {
+    res.setHeader("X-RateLimit-Limit", "unlimited");
+    res.setHeader("X-RateLimit-Remaining", "unlimited");
+    return next();
+  }
+
   const userId = req.user.id;
   const plan = req.user.plan;
   const limit = LIMITS[plan] || LIMITS.free;

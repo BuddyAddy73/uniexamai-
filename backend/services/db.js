@@ -23,7 +23,7 @@ const supabase = createClient(
 async function findUserByEmail(email) {
   const { data, error } = await supabase
     .from("users")
-    .select("id, email, password_hash, name, plan")
+    .select("id, email, password_hash, name, plan, is_admin")
     .eq("email", email)
     .maybeSingle();
 
@@ -34,13 +34,13 @@ async function findUserByEmail(email) {
 
   if (!data) return null;
 
-  // normalize to the shape auth-routes.js expects (passwordHash, camelCase)
   return {
     id: data.id,
     email: data.email,
     passwordHash: data.password_hash,
     name: data.name,
-    plan: data.plan
+    plan: data.plan,
+    isAdmin: data.is_admin
   };
 }
 
@@ -124,6 +124,7 @@ async function logSyllabusReport({ userId, university, branch, semester, query, 
     throw new Error("Could not save your report. Please try again.");
   }
 }
+
 module.exports = {
   findUserByEmail,
   createUser,
